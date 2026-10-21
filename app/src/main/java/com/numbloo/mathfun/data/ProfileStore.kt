@@ -1,7 +1,12 @@
 package com.numbloo.mathfun.data
 
 import android.content.Context
+import com.numbloo.mathfun.model.Eyes
+import com.numbloo.mathfun.model.Flag
 import com.numbloo.mathfun.model.Glasses
+import com.numbloo.mathfun.model.Hair
+import com.numbloo.mathfun.model.Job
+import com.numbloo.mathfun.model.Mouth
 import com.numbloo.mathfun.model.Neck
 import com.numbloo.mathfun.model.Profile
 import com.numbloo.mathfun.model.Stickers
@@ -67,13 +72,21 @@ class ProfileStore(context: Context) {
         if (p.hatChoice != null) o.put("hatChoice", p.hatChoice)
         o.put("glasses", p.glasses.name)
         o.put("neck", p.neck.name)
+        o.put("flag", p.flag.name)
+        o.put("hair", p.hair.name)
+        o.put("job", p.job.name)
+        o.put("eyes", p.eyes.name)
+        o.put("mouth", p.mouth.name)
+        o.put("allUnlocked", p.allUnlocked)
         return o
     }
 
     private fun statsToJson(s: TopicStats): JSONObject {
         val o = JSONObject()
         o.put("tier", s.tier)
-        o.put("lesson", s.lessonDone)
+        val ls = JSONArray()
+        s.lessons.forEach { ls.put(it) }
+        o.put("lessons", ls)
         o.put("played", s.gamesPlayed)
         o.put("correct", s.correct)
         o.put("attempts", s.attempts)
@@ -118,6 +131,12 @@ class ProfileStore(context: Context) {
             hatChoice = if (o.has("hatChoice")) o.optString("hatChoice") else null,
             glasses = Glasses.entries.firstOrNull { it.name == o.optString("glasses") } ?: Glasses.NONE,
             neck = Neck.entries.firstOrNull { it.name == o.optString("neck") } ?: Neck.NONE,
+            flag = Flag.entries.firstOrNull { it.name == o.optString("flag") } ?: Flag.NONE,
+            hair = Hair.entries.firstOrNull { it.name == o.optString("hair") } ?: Hair.NONE,
+            job = Job.entries.firstOrNull { it.name == o.optString("job") } ?: Job.NONE,
+            eyes = Eyes.entries.firstOrNull { it.name == o.optString("eyes") } ?: Eyes.NORMAL,
+            mouth = Mouth.entries.firstOrNull { it.name == o.optString("mouth") } ?: Mouth.NORMAL,
+            allUnlocked = o.optBoolean("allUnlocked", false),
         )
     }
 
@@ -131,9 +150,13 @@ class ProfileStore(context: Context) {
                 best[k] = b.optInt(k, 0)
             }
         }
+        val lessons = HashSet<String>()
+        val la = o.optJSONArray("lessons")
+        if (la != null) for (i in 0 until la.length()) lessons.add(la.optString(i))
+        if (o.optBoolean("lesson", false)) lessons.add("1") // saved by version 0.1/0.2
         return TopicStats(
             tier = o.optInt("tier", 1).coerceIn(1, 3),
-            lessonDone = o.optBoolean("lesson", false),
+            lessons = lessons,
             gamesPlayed = o.optInt("played", 0),
             correct = o.optInt("correct", 0),
             attempts = o.optInt("attempts", 0),

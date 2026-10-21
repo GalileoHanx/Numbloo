@@ -56,7 +56,7 @@ import com.numbloo.mathfun.ui.components.BouncyButton
 import com.numbloo.mathfun.ui.components.EmojiGrid
 import com.numbloo.mathfun.ui.components.FunText
 import com.numbloo.mathfun.ui.components.GroupsVisual
-import com.numbloo.mathfun.ui.components.Pip
+import com.numbloo.mathfun.ui.components.LookPip
 import com.numbloo.mathfun.ui.components.PipMood
 import com.numbloo.mathfun.ui.components.ShareVisual
 import com.numbloo.mathfun.ui.components.pulseScale
@@ -95,13 +95,10 @@ fun FeedPipGame(q: Question, attempts: Int, ctx: GameCtx, onAnswer: AnswerFn) {
         FunText("${q.a} + ${q.b}", 34.sp, ctx.color)
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Pip(
+            LookPip(
+                ctx.look,
                 Modifier.size(130.dp),
                 mood = if (chewing) PipMood.CHEW else PipMood.WOW,
-                color = ctx.pipColor,
-                hat = ctx.hat,
-                glasses = ctx.glasses,
-                neck = ctx.neck,
             )
             Spacer(Modifier.width(16.dp))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -149,10 +146,10 @@ fun BalloonPopGame(q: Question, attempts: Int, ctx: GameCtx, onAnswer: AnswerFn)
     val order = remember { q.choices.shuffled() }
     val states = remember { mutableStateListOf<BalloonState>().apply { repeat(order.size) { add(BalloonState.FLOATING) } } }
     val glow = pulseScale(attempts >= 2)
-    val showObjects = q.answer <= 10 && (attempts >= 1 || ctx.age <= 5 || ctx.guided)
+    val showObjects = ctx.beginner && q.topic == Topic.ADD && q.answer <= 10 && (attempts >= 1 || ctx.age <= 5 || ctx.guided)
 
     GameColumn {
-        FunText("${q.a} + ${q.b} = ?", 48.sp, ctx.color)
+        FunText("${q.equation} = ?", if (q.result >= 100) 40.sp else 48.sp, ctx.color)
         if (showObjects) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 EmojiGrid(q.a, "🍓", size = 22.sp)
@@ -174,7 +171,7 @@ fun BalloonPopGame(q: Question, attempts: Int, ctx: GameCtx, onAnswer: AnswerFn)
                         if (value == q.answer) {
                             states[i] = BalloonState.POPPED
                             ctx.sfx(Sfx.POP)
-                            onAnswer(true, "POP! ${q.a} + ${q.b} = ${q.answer}!")
+                            onAnswer(true, "POP! ${q.equation} = ${q.answer}!")
                         } else {
                             states[i] = BalloonState.DEFLATED
                             onAnswer(false, null)
@@ -241,7 +238,7 @@ private fun Balloon(
                     }
                     drawPath(knot, body.darken(0.25f))
                 }
-                FunText("$value", 32.sp, Color.White, Modifier.padding(bottom = 8.dp))
+                FunText("$value", if (value >= 100) 24.sp else 32.sp, Color.White, Modifier.padding(bottom = 8.dp))
             }
             Canvas(Modifier.size(width = 16.dp, height = 46.dp)) {
                 val p = Path().apply {
@@ -262,7 +259,9 @@ private fun Balloon(
 /** Froggy hops back on a number line. Tap the lily pad where he lands. */
 @Composable
 fun FrogHopGame(q: Question, attempts: Int, ctx: GameCtx, onAnswer: AnswerFn) {
-    val maxN = max(10, q.a)
+    // Show 11 lily pads around the hop (0..10 for small numbers).
+    val lo = max(0, minOf(q.a, q.answer) - (10 - q.b) / 2).let { if (it + 10 < q.a) q.a - 10 else it }
+    val hi = lo + 10
     var frogAt by remember { mutableIntStateOf(q.a) }
     var busy by remember { mutableStateOf(false) }
     val wrongPads = remember { mutableStateListOf<Int>() }
@@ -275,7 +274,7 @@ fun FrogHopGame(q: Question, attempts: Int, ctx: GameCtx, onAnswer: AnswerFn) {
         Spacer(Modifier.height(6.dp))
 
         Row(Modifier.fillMaxWidth()) {
-            for (n in 0..maxN) {
+            for (n in lo..hi) {
                 val isWrong = n in wrongPads
                 val isGlow = attempts >= 2 && n == q.answer
                 Column(
@@ -602,10 +601,10 @@ fun PackBoxesGame(q: Question, attempts: Int, ctx: GameCtx, onAnswer: AnswerFn) 
 /** Plain questions with picture help when needed. Also used for lesson practice. */
 @Composable
 fun QuizGame(q: Question, attempts: Int, ctx: GameCtx, onAnswer: AnswerFn) {
-    val showVisual = ctx.guided || attempts >= 1 || (ctx.age <= 5 && q.answer <= 10)
+    val showVisual = ctx.beginner && (ctx.guided || attempts >= 1 || (ctx.age <= 5 && q.answer <= 10))
 
     GameColumn {
-        FunText("${q.equation} = ?", 54.sp, ctx.color)
+        FunText("${q.equation} = ?", if (q.result >= 100 || q.a >= 100) 42.sp else 54.sp, ctx.color)
         if (showVisual) {
             when (q.topic) {
                 Topic.ADD -> if (q.a + q.b <= 20) {

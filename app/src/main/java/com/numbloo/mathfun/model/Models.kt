@@ -17,9 +17,6 @@ enum class Topic(
     MUL("mul", "Multiplication", "×", "times", "🍪", Color(0xFFA25CF0), "Multiplying means equal groups!"),
     DIV("div", "Division", "÷", "divided by", "🍕", Color(0xFFF2557F), "Dividing means sharing fairly!");
 
-    /** The mini-games that belong to this topic (the quiz is shared by all topics). */
-    val games: List<GameType> get() = GameType.entries.filter { it.topic == this }
-
     companion object {
         fun byId(id: String): Topic? = entries.firstOrNull { it.id == id }
     }
@@ -54,18 +51,85 @@ enum class GameType(
     MONSTER_MUNCH("monster", "Monster Munch", "👾", "How many bites to eat them all?", Topic.DIV),
     CUPCAKE_TRAYS("cupcakes", "Cupcake Trays", "🧁", "Sort cupcakes into trays", Topic.DIV),
     DIVIDE_MACHINE("divide_machine", "Divide-o-Matic", "🤖", "Feed the sharing machine", Topic.DIV),
+
+    // Round 3: work with any size of number, so they appear in every level
+    SUM_SNAP("sum_snap", "Sum Snap", "🃏", "Find two cards that add up to the target", Topic.ADD),
+    SILLY_ADD("silly_add", "Silly Sums", "🤪", "Is Pip right or silly? Catch his mistakes!", Topic.ADD),
+    DIFF_SNAP("diff_snap", "Difference Detective", "🔍", "Find two cards that are the right gap apart", Topic.SUB),
+    SILLY_SUB("silly_sub", "Silly Take-aways", "🤪", "Is Pip right or silly? Catch his mistakes!", Topic.SUB),
+    TIMES_SNAP("times_snap", "Times Twins", "👯", "Find two cards that multiply to the target", Topic.MUL),
+    SILLY_MUL("silly_mul", "Silly Times", "🤪", "Is Pip right or silly? Catch his mistakes!", Topic.MUL),
+    SHARE_SNAP("share_snap", "Share Pairs", "🍰", "Find two cards that divide to the target", Topic.DIV),
+    SILLY_DIV("silly_div", "Silly Shares", "🤪", "Is Pip right or silly? Catch his mistakes!", Topic.DIV),
+
     QUIZ("quiz", "Snack Quiz", "🧠", "Quick questions for a big brain", null);
+
+    val isSnap: Boolean get() = this == SUM_SNAP || this == DIFF_SNAP || this == TIMES_SNAP || this == SHARE_SNAP
+    val isSilly: Boolean get() = this == SILLY_ADD || this == SILLY_SUB || this == SILLY_MUL || this == SILLY_DIV
+}
+
+/** Which games each operation has at each level. Beginner games use objects to count;
+ *  higher levels use games that work with bigger numbers. */
+object Curriculum {
+    fun games(topic: Topic, level: Level): List<GameType> = when (level) {
+        Level.BEGINNER -> when (topic) {
+            Topic.ADD -> listOf(
+                GameType.FEED_PIP, GameType.BALLOON_POP, GameType.DOMINO_DOTS, GameType.SNAIL_RACE,
+                GameType.MYSTERY_BOX, GameType.SUM_SNAP, GameType.SILLY_ADD,
+            )
+            Topic.SUB -> listOf(
+                GameType.FROG_HOP, GameType.SNEAKY_SQUIRREL, GameType.BUBBLE_POP, GameType.TOWER_COMPARE,
+                GameType.MAGIC_HAT, GameType.DIFF_SNAP, GameType.SILLY_SUB,
+            )
+            Topic.MUL -> listOf(
+                GameType.COOKIE_PLATES, GameType.KANGAROO_JUMPS, GameType.FLOWER_GARDEN, GameType.LADYBUG_SPOTS,
+                GameType.TIMES_MACHINE, GameType.TIMES_SNAP, GameType.SILLY_MUL,
+            )
+            Topic.DIV -> listOf(
+                GameType.PIZZA_SHARE, GameType.PACK_BOXES, GameType.MONSTER_MUNCH, GameType.CUPCAKE_TRAYS,
+                GameType.DIVIDE_MACHINE, GameType.SHARE_SNAP, GameType.SILLY_DIV,
+            )
+        }
+        Level.INTERMEDIATE -> when (topic) {
+            Topic.ADD -> listOf(GameType.BALLOON_POP, GameType.SNAIL_RACE, GameType.MYSTERY_BOX, GameType.SUM_SNAP, GameType.SILLY_ADD)
+            Topic.SUB -> listOf(GameType.BALLOON_POP, GameType.FROG_HOP, GameType.MAGIC_HAT, GameType.DIFF_SNAP, GameType.SILLY_SUB)
+            Topic.MUL -> listOf(GameType.BALLOON_POP, GameType.KANGAROO_JUMPS, GameType.TIMES_MACHINE, GameType.TIMES_SNAP, GameType.SILLY_MUL)
+            Topic.DIV -> listOf(GameType.BALLOON_POP, GameType.DIVIDE_MACHINE, GameType.MYSTERY_BOX, GameType.SHARE_SNAP, GameType.SILLY_DIV)
+        }
+        Level.PRO -> when (topic) {
+            Topic.ADD -> listOf(GameType.BALLOON_POP, GameType.MYSTERY_BOX, GameType.SUM_SNAP, GameType.SILLY_ADD)
+            Topic.SUB -> listOf(GameType.BALLOON_POP, GameType.MAGIC_HAT, GameType.DIFF_SNAP, GameType.SILLY_SUB)
+            Topic.MUL -> listOf(GameType.BALLOON_POP, GameType.KANGAROO_JUMPS, GameType.TIMES_MACHINE, GameType.TIMES_SNAP, GameType.SILLY_MUL)
+            Topic.DIV -> listOf(GameType.BALLOON_POP, GameType.DIVIDE_MACHINE, GameType.MYSTERY_BOX, GameType.SHARE_SNAP, GameType.SILLY_DIV)
+        }
+    }
+
+    /** Games + the quiz: everything that needs 3 stars to open the next level. */
+    fun starGames(topic: Topic, level: Level): List<GameType> = games(topic, level) + GameType.QUIZ
+
+    fun maxStars(topic: Topic, level: Level): Int = starGames(topic, level).size * 3
 }
 
 enum class Level(
+    val key: String,
     val title: String,
     val emoji: String,
     val blurb: String,
-    val unlocked: Boolean,
 ) {
-    BEGINNER("Beginner", "🐣", "Build super-confidence with + − × ÷", true),
-    INTERMEDIATE("Intermediate", "🦊", "Bigger numbers and tricky puzzles", false),
-    PRO("Pro", "🦉", "Mental-math master mode", false),
+    BEGINNER("beg", "Beginner", "🐣", "Build super-confidence with + − × ÷"),
+    INTERMEDIATE("int", "Intermediate", "🦊", "Numbers to 50 and all the times tables"),
+    PRO("pro", "Pro", "🦉", "Big numbers, carrying and borrowing");
+
+    val previous: Level? get() = when (this) {
+        BEGINNER -> null
+        INTERMEDIATE -> BEGINNER
+        PRO -> INTERMEDIATE
+    }
+    val next: Level? get() = when (this) {
+        BEGINNER -> INTERMEDIATE
+        INTERMEDIATE -> PRO
+        PRO -> null
+    }
 }
 
 /** Pip earns hats as the child collects stars. */
@@ -97,6 +161,59 @@ enum class Neck(val label: String, val goldNeeded: Int) {
     SCARF("Cozy scarf", 4),
 }
 
+/** Little flag Pip holds. All flags unlock as soon as Pip's Closet opens. */
+enum class Flag(val label: String, val emoji: String, val goldNeeded: Int) {
+    NONE("No flag", "", 0),
+    SAUDI("Saudi Arabia", "🇸🇦", 1),
+    UAE("UAE", "🇦🇪", 1),
+    KUWAIT("Kuwait", "🇰🇼", 1),
+    QATAR("Qatar", "🇶🇦", 1),
+    BAHRAIN("Bahrain", "🇧🇭", 1),
+    OMAN("Oman", "🇴🇲", 1),
+    PHILIPPINES("Philippines", "🇵🇭", 1),
+    PORTUGAL("Portugal", "🇵🇹", 1),
+    ENGLAND("England", "\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F", 1),
+    SPAIN("Spain", "🇪🇸", 1),
+    BRAZIL("Brazil", "🇧🇷", 1),
+}
+
+enum class Hair(val label: String, val goldNeeded: Int) {
+    NONE("Sprout", 0),
+    SPIKY("Spiky", 1),
+    CURLY("Curly", 2),
+    PIGTAILS("Pigtails", 3),
+    MOHAWK("Mohawk", 5),
+    SWOOP("Swoosh", 7),
+}
+
+/** Job outfits replace the hat while they are worn. */
+enum class Job(val label: String, val goldNeeded: Int) {
+    NONE("No job", 0),
+    CHEF("Chef", 2),
+    DOCTOR("Doctor", 3),
+    FIREFIGHTER("Firefighter", 4),
+    BUILDER("Builder", 6),
+    PILOT("Pilot", 8),
+    ASTRONAUT("Astronaut", 10),
+}
+
+enum class Eyes(val label: String, val goldNeeded: Int) {
+    NORMAL("Normal", 0),
+    SPARKLY("Sparkly", 1),
+    SLEEPY("Sleepy", 3),
+    WINK("Winky", 4),
+    HEARTS("Hearts", 6),
+    STARRY("Starry", 9),
+}
+
+enum class Mouth(val label: String, val goldNeeded: Int) {
+    NORMAL("Normal", 0),
+    TOOTHY("Toothy", 2),
+    TONGUE("Silly tongue", 3),
+    MUSTACHE("Mustache", 5),
+    FANGS("Vampire", 7),
+}
+
 /** Pip's colours. The first six are free; the rest unlock with 3-star wins. */
 object PipColors {
     val names = listOf("Lime", "Sky", "Tangerine", "Bubblegum", "Grape", "Banana", "Mint", "Ruby", "Gold", "Midnight")
@@ -112,6 +229,11 @@ object Closet {
         val range = (old + 1)..new
         Neck.entries.filter { it != Neck.NONE && it.goldNeeded in range }.forEach { out.add(it.label) }
         Glasses.entries.filter { it != Glasses.NONE && it.goldNeeded in range }.forEach { out.add(it.label) }
+        if (old < 1 && new >= 1) out.add("Flags")
+        Hair.entries.filter { it != Hair.NONE && it.goldNeeded in range }.forEach { out.add(it.label + " hair") }
+        Job.entries.filter { it != Job.NONE && it.goldNeeded in range }.forEach { out.add(it.label + " outfit") }
+        Eyes.entries.filter { it != Eyes.NORMAL && it.goldNeeded in range }.forEach { out.add(it.label + " eyes") }
+        Mouth.entries.filter { it != Mouth.NORMAL && it.goldNeeded in range }.forEach { out.add(it.label + " mouth") }
         PipColors.goldNeeded.forEachIndexed { i, need ->
             if (need > 0 && need in range) out.add(PipColors.names[i] + " colour")
         }
@@ -122,7 +244,8 @@ object Closet {
 /** How a child is doing in one topic. Difficulty "tier" is 1 (easy) to 3 (tricky). */
 data class TopicStats(
     val tier: Int = 1,
-    val lessonDone: Boolean = false,
+    /** Ids of finished lessons ("1", "2", "3"). */
+    val lessons: Set<String> = emptySet(),
     val gamesPlayed: Int = 0,
     val correct: Int = 0,
     val attempts: Int = 0,
@@ -130,6 +253,7 @@ data class TopicStats(
 ) {
     val accuracyPercent: Int get() = if (attempts == 0) 0 else correct * 100 / attempts
     val tierName: String get() = when (tier) { 1 -> "Easy"; 2 -> "Medium"; else -> "Tricky" }
+    val lessonDone: Boolean get() = lessons.isNotEmpty()
 }
 
 data class Profile(
@@ -148,9 +272,36 @@ data class Profile(
     val hatChoice: String? = null,
     val glasses: Glasses = Glasses.NONE,
     val neck: Neck = Neck.NONE,
+    val flag: Flag = Flag.NONE,
+    val hair: Hair = Hair.NONE,
+    val job: Job = Job.NONE,
+    val eyes: Eyes = Eyes.NORMAL,
+    val mouth: Mouth = Mouth.NORMAL,
+    /** Grown-ups can open every level (for testing or older kids). */
+    val allUnlocked: Boolean = false,
 ) {
-    fun stats(topic: Topic): TopicStats = topics[topic.id] ?: TopicStats(tier = startingTier(age))
-    fun withStats(topic: Topic, s: TopicStats): Profile = copy(topics = topics + (topic.id to s))
+    fun stats(topic: Topic, level: Level = Level.BEGINNER): TopicStats =
+        topics[statsKey(topic, level)] ?: TopicStats(tier = if (level == Level.BEGINNER) startingTier(age) else 1)
+
+    fun withStats(topic: Topic, level: Level, s: TopicStats): Profile =
+        copy(topics = topics + (statsKey(topic, level) to s))
+
+    /** Stars collected in one operation at one level. */
+    fun topicStars(topic: Topic, level: Level = Level.BEGINNER): Int {
+        val s = stats(topic, level)
+        return Curriculum.starGames(topic, level).sumOf { s.bestStars[it.id] ?: 0 }
+    }
+
+    /** Every game + quiz in this operation/level has 3 stars. */
+    fun fullStars(topic: Topic, level: Level): Boolean = topicStars(topic, level) >= Curriculum.maxStars(topic, level)
+
+    fun topicUnlocked(topic: Topic, level: Level): Boolean {
+        val prev = level.previous ?: return true
+        if (allUnlocked) return true
+        return topicUnlocked(topic, prev) && fullStars(topic, prev)
+    }
+
+    fun levelUnlocked(level: Level): Boolean = Topic.entries.any { topicUnlocked(it, level) }
 
     val hat: Hat
         get() {
@@ -160,13 +311,11 @@ data class Profile(
 
     val closetOpen: Boolean get() = goldWins >= 1
 
-    /** Best stars across a topic's games + quiz (max 9 per topic). */
-    fun topicStars(topic: Topic): Int {
-        val s = stats(topic)
-        return (topic.games + GameType.QUIZ).sumOf { s.bestStars[it.id] ?: 0 }
-    }
-
     companion object {
+        /** Beginner keeps the old key ("add") so saved progress still loads. */
+        fun statsKey(topic: Topic, level: Level): String =
+            if (level == Level.BEGINNER) topic.id else level.key + "_" + topic.id
+
         /** Everyone starts easy to build confidence; older kids start one step up. */
         fun startingTier(age: Int): Int = if (age >= 8) 2 else 1
     }
@@ -229,6 +378,7 @@ object Stickers {
 /** What happened in one finished game, shown on the results screen. */
 data class GameResult(
     val topic: Topic,
+    val level: Level,
     val game: GameType,
     val guided: Boolean,
     val stars: Int,
@@ -239,6 +389,8 @@ data class GameResult(
     val tierChange: Int,
     val closetOpened: Boolean = false,
     val unlocked: List<String> = emptyList(),
+    /** Set when this game opened the next level of this operation. */
+    val levelUnlocked: Level? = null,
 )
 
 /** Funny things Pip says. */

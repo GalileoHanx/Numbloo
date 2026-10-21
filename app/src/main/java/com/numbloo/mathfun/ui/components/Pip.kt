@@ -9,11 +9,11 @@ import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -29,8 +29,13 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.numbloo.mathfun.model.Eyes
+import com.numbloo.mathfun.model.Flag
 import com.numbloo.mathfun.model.Glasses
+import com.numbloo.mathfun.model.Hair
 import com.numbloo.mathfun.model.Hat
+import com.numbloo.mathfun.model.Job
+import com.numbloo.mathfun.model.Mouth
 import com.numbloo.mathfun.model.Neck
 import com.numbloo.mathfun.model.Profile
 import com.numbloo.mathfun.ui.theme.NumColors
@@ -38,12 +43,30 @@ import com.numbloo.mathfun.ui.theme.darken
 import com.numbloo.mathfun.ui.theme.lighten
 import kotlin.math.abs
 import kotlin.math.cos
+import kotlin.math.sin
 
 enum class PipMood { HAPPY, WOW, OOPS, CHEW, THINK }
+
+/** Everything Pip is wearing. */
+data class PipLook(
+    val color: Color = NumColors.PipPalette[0],
+    val hat: Hat = Hat.NONE,
+    val glasses: Glasses = Glasses.NONE,
+    val neck: Neck = Neck.NONE,
+    val flag: Flag = Flag.NONE,
+    val hair: Hair = Hair.NONE,
+    val job: Job = Job.NONE,
+    val eyes: Eyes = Eyes.NORMAL,
+    val mouth: Mouth = Mouth.NORMAL,
+)
+
+fun Profile.pipLook(): PipLook =
+    PipLook(NumColors.pip(colorIndex), hat, glasses, neck, flag, hair, job, eyes, mouth)
 
 /**
  * Pip: a hungry, goofy blob who eats numbers.
  * Drawn entirely in code, so it costs nothing to ship and scales to any size.
+ * [animated] = false draws a still Pip (used for the many small previews in the closet).
  */
 @Composable
 fun Pip(
@@ -53,9 +76,16 @@ fun Pip(
     hat: Hat = Hat.NONE,
     glasses: Glasses = Glasses.NONE,
     neck: Neck = Neck.NONE,
+    flag: Flag = Flag.NONE,
+    hair: Hair = Hair.NONE,
+    job: Job = Job.NONE,
+    eyes: Eyes = Eyes.NORMAL,
+    mouth: Mouth = Mouth.NORMAL,
+    animated: Boolean = true,
 ) {
+    val look = PipLook(color, hat, glasses, neck, flag, hair, job, eyes, mouth)
     val inf = rememberInfiniteTransition(label = "pip")
-    val bounce by inf.animateFloat(
+    val bounce = if (!animated) 0f else inf.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -63,8 +93,8 @@ fun Pip(
             RepeatMode.Reverse,
         ),
         label = "bounce",
-    )
-    val blink by inf.animateFloat(
+    ).value
+    val blink = if (!animated) 1f else inf.animateFloat(
         initialValue = 1f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -77,30 +107,42 @@ fun Pip(
             }
         ),
         label = "blink",
-    )
-    val fast by inf.animateFloat(
+    ).value
+    val fast = if (!animated) 0.5f else inf.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(150, easing = LinearEasing), RepeatMode.Reverse),
         label = "fast",
-    )
-    val spin by inf.animateFloat(
+    ).value
+    val spin = if (!animated) 30f else inf.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(tween(500, easing = LinearEasing)),
         label = "spin",
-    )
+    ).value
 
-    Box(modifier) {
+    BoxWithConstraints(modifier) {
+        val boxW = maxWidth
+        val boxH = maxHeight
         Canvas(Modifier.fillMaxSize()) {
-            drawPip(mood, color, hat, glasses, neck, bounce, blink, fast, spin)
+            drawPip(mood, look, bounce, blink, fast, spin)
+        }
+        if (flag != Flag.NONE) {
+            Text(
+                flag.emoji,
+                fontSize = (boxW.value * 0.24f).sp,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = -(boxW * 0.07f), y = boxH * 0.01f)
+                    .graphicsLayer { rotationZ = if (animated) (fast - 0.5f) * 6f else 0f },
+            )
         }
         if (mood == PipMood.OOPS) {
             Text(
                 "hic!",
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .graphicsLayer { rotationZ = 14f; translationY = -fast * 6f },
+                    .align(Alignment.TopStart)
+                    .graphicsLayer { rotationZ = -14f; translationY = -fast * 6f },
                 color = NumColors.Ink,
                 fontWeight = FontWeight.Black,
                 fontSize = 16.sp,
@@ -112,20 +154,26 @@ fun Pip(
 /** Pip dressed the way this player chose. */
 @Composable
 fun ProfilePip(p: Profile, modifier: Modifier = Modifier, mood: PipMood = PipMood.HAPPY) {
-    Pip(modifier, mood, NumColors.pip(p.colorIndex), p.hat, p.glasses, p.neck)
+    LookPip(p.pipLook(), modifier, mood)
+}
+
+@Composable
+fun LookPip(look: PipLook, modifier: Modifier = Modifier, mood: PipMood = PipMood.HAPPY, animated: Boolean = true) {
+    Pip(
+        modifier, mood, look.color, look.hat, look.glasses, look.neck,
+        look.flag, look.hair, look.job, look.eyes, look.mouth, animated,
+    )
 }
 
 private fun DrawScope.drawPip(
     mood: PipMood,
-    color: Color,
-    hat: Hat,
-    glasses: Glasses,
-    neck: Neck,
+    look: PipLook,
     bounce: Float,
     blink: Float,
     fast: Float,
     spin: Float,
 ) {
+    val color = look.color
     val w = size.width
     val h = size.height
     val shake = if (mood == PipMood.OOPS) (fast - 0.5f) * w * 0.04f else 0f
@@ -144,6 +192,13 @@ private fun DrawScope.drawPip(
         topLeft = Offset(w / 2f - rx * 0.8f, h * 0.92f),
         size = Size(rx * 1.6f, h * 0.05f),
     )
+    // Flag pole (the flag itself is an emoji placed on top)
+    if (look.flag != Flag.NONE) {
+        drawLine(
+            Color(0xFF8D6E63), Offset(cx + rx * 0.82f, cy + ry * 0.15f), Offset(w * 0.93f, h * 0.05f),
+            strokeWidth = w * 0.025f, cap = StrokeCap.Round,
+        )
+    }
     // Feet
     drawOval(color.darken(0.2f), Offset(cx - rx * 0.6f, cy + ry * 0.72f), Size(rx * 0.42f, ry * 0.36f))
     drawOval(color.darken(0.2f), Offset(cx + rx * 0.18f, cy + ry * 0.72f), Size(rx * 0.42f, ry * 0.36f))
@@ -167,6 +222,12 @@ private fun DrawScope.drawPip(
         Offset(cx - rx * 0.42f, cy + ry * 0.12f),
         Size(rx * 0.84f, ry * 0.6f),
     )
+    // Hand holding the flag
+    if (look.flag != Flag.NONE) {
+        drawCircle(color.darken(0.1f), radius = rx * 0.13f, center = Offset(cx + rx * 0.86f, cy + ry * 0.12f))
+    }
+
+    drawHair(look.hair, cx, cy, rx, ry)
 
     // Eyes
     val eyeY = cy - ry * 0.18f
@@ -183,19 +244,7 @@ private fun DrawScope.drawPip(
             }
             drawPath(p, NumColors.Ink, style = Stroke(width = stroke * 1.3f, cap = StrokeCap.Round, join = StrokeJoin.Round))
         } else {
-            val eh = er * 2f * blink
-            drawOval(Color.White, Offset(ex - er, eyeY - eh / 2f), Size(er * 2f, eh))
-            drawOval(outline, Offset(ex - er, eyeY - eh / 2f), Size(er * 2f, eh), style = Stroke(width = stroke * 0.6f))
-            if (blink > 0.4f) {
-                val pr = er * if (mood == PipMood.WOW) 0.38f else 0.52f
-                val look = when (mood) {
-                    PipMood.THINK -> Offset(er * 0.35f, -er * 0.35f)
-                    else -> Offset(0f, er * 0.12f)
-                }
-                val pc = Offset(ex, eyeY) + look
-                drawCircle(NumColors.Ink, radius = pr, center = pc)
-                drawCircle(Color.White, radius = pr * 0.35f, center = pc + Offset(-pr * 0.3f, -pr * 0.35f))
-            }
+            drawEye(look.eyes, s, ex, eyeY, er, blink, mood, outline, color, stroke)
         }
     }
 
@@ -212,14 +261,7 @@ private fun DrawScope.drawPip(
     val my = cy + ry * 0.3f
     val mouthColor = Color(0xFF7A1F3D)
     when (mood) {
-        PipMood.HAPPY -> {
-            drawArc(
-                mouthColor, startAngle = 0f, sweepAngle = 180f, useCenter = true,
-                topLeft = Offset(cx - rx * 0.28f, my - ry * 0.22f),
-                size = Size(rx * 0.56f, ry * 0.48f),
-            )
-            drawOval(Color(0xFFFF7B9C), Offset(cx - rx * 0.12f, my + ry * 0.06f), Size(rx * 0.24f, ry * 0.12f))
-        }
+        PipMood.HAPPY -> drawHappyMouth(look.mouth, cx, my, rx, ry, mouthColor, outline, stroke)
         PipMood.WOW -> drawOval(mouthColor, Offset(cx - rx * 0.1f, my - ry * 0.1f), Size(rx * 0.2f, ry * 0.28f))
         PipMood.CHEW -> {
             val open = ry * (0.06f + fast * 0.26f)
@@ -240,10 +282,297 @@ private fun DrawScope.drawPip(
             drawPath(p, outline, style = Stroke(width = stroke, cap = StrokeCap.Round, join = StrokeJoin.Round))
         }
     }
+    if (look.mouth == Mouth.MUSTACHE) {
+        val brown = Color(0xFF4E342E)
+        for (s in listOf(-1f, 1f)) {
+            rotate(s * -12f, Offset(cx, my - ry * 0.14f)) {
+                drawOval(brown, Offset(if (s < 0) cx - rx * 0.3f else cx, my - ry * 0.2f), Size(rx * 0.3f, ry * 0.13f))
+            }
+        }
+    }
 
-    drawNeck(neck, cx, cy, rx, ry)
-    drawGlasses(glasses, cx, eyeY, rx * 0.36f, er)
-    drawHat(hat, cx, cy - ry, rx, ry, h, spin)
+    drawNeck(look.neck, cx, cy, rx, ry)
+    if (look.job == Job.DOCTOR) drawStethoscope(cx, cy, rx, ry)
+    drawGlasses(look.glasses, cx, eyeY, rx * 0.36f, er)
+    if (look.job != Job.NONE) {
+        drawJob(look.job, cx, cy, rx, ry, h)
+    } else if (!(look.hat == Hat.NONE && look.hair != Hair.NONE)) {
+        drawHat(look.hat, cx, cy - ry, rx, ry, h, spin)
+    }
+}
+
+/** A point on Pip's body outline at [deg] degrees (270 = the very top). */
+private fun edge(cx: Float, cy: Float, rx: Float, ry: Float, deg: Float, scale: Float = 1f): Offset {
+    val a = Math.toRadians(deg.toDouble())
+    return Offset(cx + rx * scale * cos(a).toFloat(), cy + ry * scale * sin(a).toFloat())
+}
+
+private fun DrawScope.drawHair(hair: Hair, cx: Float, cy: Float, rx: Float, ry: Float) {
+    when (hair) {
+        Hair.NONE -> {}
+        Hair.SPIKY, Hair.MOHAWK -> {
+            val mohawk = hair == Hair.MOHAWK
+            val from = if (mohawk) 250f else 205f
+            val to = if (mohawk) 290f else 335f
+            val spikes = if (mohawk) 4 else 6
+            val reach = if (mohawk) 1.75f else 1.4f
+            val p = Path()
+            val step = (to - from) / spikes
+            val start = edge(cx, cy, rx, ry, from, 0.92f)
+            p.moveTo(start.x, start.y)
+            for (k in 0 until spikes) {
+                val tip = edge(cx, cy, rx, ry, from + step * (k + 0.5f), reach)
+                val base = edge(cx, cy, rx, ry, from + step * (k + 1), 0.92f)
+                p.lineTo(tip.x, tip.y)
+                p.lineTo(base.x, base.y)
+            }
+            p.close()
+            val c = if (mohawk) Color(0xFFE91E63) else Color(0xFF5D4037)
+            drawPath(p, c)
+            drawPath(p, c.darken(0.3f), style = Stroke(width = rx * 0.025f, join = StrokeJoin.Round))
+        }
+        Hair.CURLY -> {
+            val c = Color(0xFF3E2723)
+            var deg = 198f
+            while (deg <= 342f) {
+                drawCircle(c, radius = rx * 0.19f, center = edge(cx, cy, rx, ry, deg, 0.98f))
+                deg += 18f
+            }
+            for (d in listOf(235f, 270f, 305f)) {
+                drawCircle(c, radius = rx * 0.17f, center = edge(cx, cy, rx, ry, d, 1.12f))
+            }
+            for (d in listOf(250f, 290f)) {
+                drawCircle(c.lighten(0.12f), radius = rx * 0.07f, center = edge(cx, cy, rx, ry, d, 1.1f))
+            }
+        }
+        Hair.PIGTAILS -> {
+            val c = Color(0xFFD84315)
+            // fringe
+            val f = Path()
+            val a = edge(cx, cy, rx, ry, 215f)
+            val b = edge(cx, cy, rx, ry, 325f)
+            f.moveTo(a.x, a.y)
+            f.cubicTo(cx - rx * 0.4f, cy - ry * 1.25f, cx + rx * 0.4f, cy - ry * 1.25f, b.x, b.y)
+            f.cubicTo(cx + rx * 0.3f, cy - ry * 0.75f, cx - rx * 0.3f, cy - ry * 0.75f, a.x, a.y)
+            drawPath(f, c)
+            for (s in listOf(-1f, 1f)) {
+                val puff = Offset(cx + s * rx * 1.02f, cy - ry * 0.62f)
+                drawCircle(c, radius = rx * 0.24f, center = puff)
+                drawCircle(c.darken(0.25f), radius = rx * 0.24f, center = puff, style = Stroke(width = rx * 0.025f))
+                val bow = Offset(cx + s * rx * 0.82f, cy - ry * 0.78f)
+                drawCircle(Color(0xFFFF6FA8), radius = rx * 0.08f, center = bow)
+                drawCircle(Color(0xFFFF6FA8), radius = rx * 0.06f, center = bow + Offset(-rx * 0.09f, -rx * 0.05f))
+                drawCircle(Color(0xFFFF6FA8), radius = rx * 0.06f, center = bow + Offset(rx * 0.09f, -rx * 0.05f))
+            }
+        }
+        Hair.SWOOP -> {
+            val c = Color(0xFF6D4C41)
+            val p = Path()
+            val a = edge(cx, cy, rx, ry, 195f)
+            val b = edge(cx, cy, rx, ry, 345f)
+            p.moveTo(a.x, a.y)
+            p.cubicTo(cx - rx * 0.9f, cy - ry * 1.35f, cx + rx * 0.6f, cy - ry * 1.5f, b.x, b.y)
+            p.cubicTo(cx + rx * 0.5f, cy - ry * 0.8f, cx - rx * 0.1f, cy - ry * 0.85f, cx - rx * 0.55f, cy - ry * 0.45f)
+            p.close()
+            drawPath(p, c)
+            drawPath(p, c.darken(0.3f), style = Stroke(width = rx * 0.025f, join = StrokeJoin.Round))
+            drawLine(Color.White.copy(alpha = 0.3f), Offset(cx - rx * 0.4f, cy - ry * 0.95f), Offset(cx + rx * 0.2f, cy - ry * 1.08f), strokeWidth = rx * 0.05f, cap = StrokeCap.Round)
+        }
+    }
+}
+
+private fun heartPath(c: Offset, r: Float): Path = Path().apply {
+    moveTo(c.x, c.y + r * 0.9f)
+    cubicTo(c.x - r * 1.4f, c.y - r * 0.1f, c.x - r * 0.7f, c.y - r * 1.2f, c.x, c.y - r * 0.4f)
+    cubicTo(c.x + r * 0.7f, c.y - r * 1.2f, c.x + r * 1.4f, c.y - r * 0.1f, c.x, c.y + r * 0.9f)
+    close()
+}
+
+private fun DrawScope.drawEye(
+    style: Eyes,
+    side: Float,
+    ex: Float,
+    eyeY: Float,
+    er: Float,
+    blink: Float,
+    mood: PipMood,
+    outline: Color,
+    body: Color,
+    stroke: Float,
+) {
+    if (style == Eyes.HEARTS) {
+        val p = heartPath(Offset(ex, eyeY), er * 1.05f * blink.coerceAtLeast(0.3f))
+        drawPath(p, Color(0xFFE53958))
+        drawCircle(Color.White.copy(alpha = 0.7f), radius = er * 0.18f, center = Offset(ex - er * 0.35f, eyeY - er * 0.3f))
+        return
+    }
+    if (style == Eyes.WINK && side > 0f) {
+        drawArc(
+            NumColors.Ink, startAngle = 200f, sweepAngle = 140f, useCenter = false,
+            topLeft = Offset(ex - er * 0.8f, eyeY - er * 0.3f), size = Size(er * 1.6f, er * 1.2f),
+            style = Stroke(width = stroke * 1.2f, cap = StrokeCap.Round),
+        )
+        return
+    }
+    val eh = er * 2f * blink
+    drawOval(Color.White, Offset(ex - er, eyeY - eh / 2f), Size(er * 2f, eh))
+    drawOval(outline, Offset(ex - er, eyeY - eh / 2f), Size(er * 2f, eh), style = Stroke(width = stroke * 0.6f))
+    if (blink <= 0.4f) return
+    val look = when {
+        mood == PipMood.THINK -> Offset(er * 0.35f, -er * 0.35f)
+        style == Eyes.SLEEPY -> Offset(0f, er * 0.35f)
+        else -> Offset(0f, er * 0.12f)
+    }
+    val pc = Offset(ex, eyeY) + look
+    when (style) {
+        Eyes.STARRY -> {
+            val star = starPath(pc, er * 0.62f, er * 0.28f)
+            drawPath(star, Color(0xFFFFC93C))
+            drawPath(star, Color(0xFFB8860B), style = Stroke(width = er * 0.08f, join = StrokeJoin.Round))
+        }
+        Eyes.SPARKLY -> {
+            val pr = er * 0.64f
+            drawCircle(NumColors.Ink, radius = pr, center = pc)
+            drawCircle(Color.White, radius = pr * 0.36f, center = pc + Offset(-pr * 0.3f, -pr * 0.35f))
+            drawCircle(Color.White, radius = pr * 0.18f, center = pc + Offset(pr * 0.35f, pr * 0.3f))
+        }
+        else -> {
+            val pr = er * if (mood == PipMood.WOW) 0.38f else 0.52f
+            drawCircle(NumColors.Ink, radius = pr, center = pc)
+            drawCircle(Color.White, radius = pr * 0.35f, center = pc + Offset(-pr * 0.3f, -pr * 0.35f))
+        }
+    }
+    if (style == Eyes.SLEEPY) {
+        // Droopy eyelid
+        drawArc(
+            body, startAngle = 180f, sweepAngle = 180f, useCenter = true,
+            topLeft = Offset(ex - er * 1.05f, eyeY - eh / 2f - er * 0.05f), size = Size(er * 2.1f, eh * 1.05f),
+        )
+        drawLine(outline, Offset(ex - er, eyeY), Offset(ex + er, eyeY), strokeWidth = stroke * 0.8f, cap = StrokeCap.Round)
+    }
+}
+
+private fun DrawScope.drawHappyMouth(
+    style: Mouth,
+    cx: Float,
+    my: Float,
+    rx: Float,
+    ry: Float,
+    mouthColor: Color,
+    outline: Color,
+    stroke: Float,
+) {
+    val left = cx - rx * 0.28f
+    val top = my - ry * 0.22f
+    val mw = rx * 0.56f
+    val mh = ry * 0.48f
+    if (style == Mouth.TONGUE) {
+        drawArc(
+            outline, startAngle = 10f, sweepAngle = 160f, useCenter = false,
+            topLeft = Offset(left, top), size = Size(mw, mh),
+            style = Stroke(width = stroke, cap = StrokeCap.Round),
+        )
+        drawOval(Color(0xFFFF7B9C), Offset(cx - rx * 0.05f, my + ry * 0.12f), Size(rx * 0.22f, ry * 0.3f))
+        drawLine(Color(0xFFE0557A), Offset(cx + rx * 0.06f, my + ry * 0.15f), Offset(cx + rx * 0.06f, my + ry * 0.33f), strokeWidth = stroke * 0.5f)
+        return
+    }
+    drawArc(mouthColor, startAngle = 0f, sweepAngle = 180f, useCenter = true, topLeft = Offset(left, top), size = Size(mw, mh))
+    drawOval(Color(0xFFFF7B9C), Offset(cx - rx * 0.12f, my + ry * 0.06f), Size(rx * 0.24f, ry * 0.12f))
+    when (style) {
+        Mouth.TOOTHY -> {
+            drawRect(Color.White, Offset(cx - rx * 0.1f, my + ry * 0.01f), Size(rx * 0.09f, ry * 0.11f))
+            drawRect(Color.White, Offset(cx + rx * 0.01f, my + ry * 0.01f), Size(rx * 0.09f, ry * 0.11f))
+        }
+        Mouth.FANGS -> {
+            for (s in listOf(-1f, 1f)) {
+                val x = cx + s * rx * 0.17f
+                val p = Path().apply {
+                    moveTo(x - rx * 0.05f, my + ry * 0.01f)
+                    lineTo(x + rx * 0.05f, my + ry * 0.01f)
+                    lineTo(x, my + ry * 0.12f)
+                    close()
+                }
+                drawPath(p, Color.White)
+            }
+        }
+        else -> {}
+    }
+}
+
+private fun DrawScope.drawStethoscope(cx: Float, cy: Float, rx: Float, ry: Float) {
+    val grey = Color(0xFF607D8B)
+    drawArc(
+        grey, startAngle = 25f, sweepAngle = 130f, useCenter = false,
+        topLeft = Offset(cx - rx * 0.8f, cy - ry * 0.05f), size = Size(rx * 1.6f, ry * 0.95f),
+        style = Stroke(width = rx * 0.05f, cap = StrokeCap.Round),
+    )
+    val end = Offset(cx + rx * 0.35f, cy + ry * 0.82f)
+    drawCircle(Color(0xFFB0BEC5), radius = rx * 0.1f, center = end)
+    drawCircle(grey, radius = rx * 0.1f, center = end, style = Stroke(width = rx * 0.03f))
+}
+
+private fun DrawScope.drawJob(job: Job, cx: Float, cy: Float, rx: Float, ry: Float, h: Float) {
+    val top = cy - ry
+    when (job) {
+        Job.NONE -> {}
+        Job.CHEF -> {
+            val white = Color(0xFFFDFDFD)
+            val edgeC = Color(0xFFB0BEC5)
+            for (k in listOf(-1f, 0f, 1f)) {
+                drawCircle(white, radius = rx * 0.24f, center = Offset(cx + k * rx * 0.26f, top - h * 0.1f))
+                drawCircle(edgeC, radius = rx * 0.24f, center = Offset(cx + k * rx * 0.26f, top - h * 0.1f), style = Stroke(width = rx * 0.02f))
+            }
+            drawRect(white, Offset(cx - rx * 0.42f, top - h * 0.06f), Size(rx * 0.84f, ry * 0.32f))
+            drawRect(edgeC, Offset(cx - rx * 0.42f, top - h * 0.06f), Size(rx * 0.84f, ry * 0.32f), style = Stroke(width = rx * 0.02f))
+        }
+        Job.DOCTOR -> {
+            drawLine(Color(0xFF455A64), edge(cx, cy, rx, ry, 215f, 0.95f), edge(cx, cy, rx, ry, 325f, 0.95f), strokeWidth = rx * 0.06f)
+            val mirror = Offset(cx, top + ry * 0.12f)
+            drawCircle(Color(0xFFE0E0E0), radius = rx * 0.17f, center = mirror)
+            drawCircle(Color(0xFF90A4AE), radius = rx * 0.17f, center = mirror, style = Stroke(width = rx * 0.035f))
+            drawCircle(Color.White, radius = rx * 0.05f, center = mirror + Offset(-rx * 0.05f, -rx * 0.05f))
+        }
+        Job.FIREFIGHTER, Job.BUILDER, Job.PILOT -> {
+            val main = when (job) {
+                Job.FIREFIGHTER -> Color(0xFFD32F2F)
+                Job.BUILDER -> Color(0xFFFFC107)
+                else -> Color(0xFF283593)
+            }
+            val domeR = rx * 0.62f
+            val base = top + ry * 0.2f
+            drawArc(main, 180f, 180f, true, Offset(cx - domeR, base - domeR * 0.9f), Size(domeR * 2f, domeR * 1.8f))
+            // brim
+            val brimColor = if (job == Job.PILOT) Color(0xFF111111) else main.darken(0.15f)
+            drawOval(brimColor, Offset(cx - rx * 0.8f, base - ry * 0.08f), Size(rx * 1.6f, ry * 0.18f))
+            when (job) {
+                Job.FIREFIGHTER -> {
+                    drawCircle(Color(0xFFFFC93C), radius = rx * 0.13f, center = Offset(cx, base - domeR * 0.45f))
+                    drawCircle(Color(0xFFB8860B), radius = rx * 0.13f, center = Offset(cx, base - domeR * 0.45f), style = Stroke(width = rx * 0.025f))
+                }
+                Job.BUILDER -> drawLine(main.darken(0.2f), Offset(cx, base - domeR * 0.9f), Offset(cx, base), strokeWidth = rx * 0.08f)
+                else -> {
+                    val gold = Color(0xFFFFC93C)
+                    val c = Offset(cx, base - domeR * 0.45f)
+                    drawOval(gold, Offset(c.x - rx * 0.32f, c.y - rx * 0.04f), Size(rx * 0.26f, rx * 0.08f))
+                    drawOval(gold, Offset(c.x + rx * 0.06f, c.y - rx * 0.04f), Size(rx * 0.26f, rx * 0.08f))
+                    drawCircle(gold, radius = rx * 0.07f, center = c)
+                }
+            }
+        }
+        Job.ASTRONAUT -> {
+            val c = Offset(cx, cy - ry * 0.05f)
+            val r = rx * 1.12f
+            drawCircle(Color(0xFFBDE7FF).copy(alpha = 0.22f), radius = r, center = c)
+            drawCircle(Color(0xFFCFD8DC), radius = r, center = c, style = Stroke(width = rx * 0.07f))
+            drawArc(
+                Color.White.copy(alpha = 0.7f), 200f, 50f, false,
+                Offset(c.x - r * 0.8f, c.y - r * 0.8f), Size(r * 1.6f, r * 1.6f),
+                style = Stroke(width = rx * 0.06f, cap = StrokeCap.Round),
+            )
+            drawLine(Color(0xFF90A4AE), Offset(c.x + r * 0.5f, c.y - r * 0.85f), Offset(c.x + r * 0.62f, c.y - r * 1.12f), strokeWidth = rx * 0.04f)
+            drawCircle(Color(0xFFFF4D6D), radius = rx * 0.06f, center = Offset(c.x + r * 0.62f, c.y - r * 1.12f))
+        }
+    }
 }
 
 private fun starPath(c: Offset, outer: Float, inner: Float): Path = Path().apply {

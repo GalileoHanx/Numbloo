@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.numbloo.mathfun.AppState
 import com.numbloo.mathfun.audio.Sfx
+import com.numbloo.mathfun.model.Level
 import com.numbloo.mathfun.model.Profile
 import com.numbloo.mathfun.model.Topic
 import com.numbloo.mathfun.ui.components.BigEquation
@@ -53,130 +54,19 @@ import com.numbloo.mathfun.ui.components.SpeechBubble
 import com.numbloo.mathfun.ui.components.TopBar
 import com.numbloo.mathfun.ui.theme.NumColors
 
-/** One step of a lesson: what Pip says + a picture. */
-class LessonCard(
-    val text: String,
-    val mood: PipMood = PipMood.HAPPY,
-    val visual: @Composable (Color) -> Unit,
-)
-
-/** Short, silly lessons. Show first, then name it, then practice. */
-object Lessons {
-    fun cards(topic: Topic): List<LessonCard> = when (topic) {
-        Topic.ADD -> listOf(
-            LessonCard("Hi! I'm Pip and I LOVE snacks. Adding means putting things together!") { c ->
-                BigEquation("+", c, 120.sp)
-            },
-            LessonCard("Look! Pip has 2 apples.") {
-                PoppingItems(2, "🍎", size = 52.sp)
-            },
-            LessonCard("Then a friend brings 3 more apples. Yum!", PipMood.WOW) { c ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    PoppingItems(2, "🍎", size = 40.sp)
-                    FunText(" + ", 40.sp, c)
-                    PoppingItems(3, "🍎", startDelay = 400, size = 40.sp)
-                }
-            },
-            LessonCard("Put them together and count: 1, 2, 3, 4, 5. Five apples!") {
-                PoppingItems(5, "🍎", size = 44.sp, numbered = true)
-            },
-            LessonCard("We write it like this: 2 plus 3 equals 5. The plus sign means put together!") { c ->
-                BigEquation("2 + 3 = 5", c)
-            },
-            LessonCard("Now it's your turn! Let's try 3 together.", PipMood.WOW) {
-                Text("🙌", fontSize = 90.sp)
-            },
-        )
-
-        Topic.SUB -> listOf(
-            LessonCard("Subtracting means taking some away. Pip has 5 cookies.") {
-                PoppingItems(5, "🍪", size = 46.sp)
-            },
-            LessonCard("Chomp chomp! Pip eats 2 of them. Oops!", PipMood.CHEW) {
-                PoppingItems(5, "🍪", size = 46.sp, crossFrom = 3)
-            },
-            LessonCard("How many are left? Count them: 1, 2, 3. Three cookies left!") {
-                PoppingItems(3, "🍪", size = 46.sp, numbered = true)
-            },
-            LessonCard("We write 5 minus 2 equals 3. The minus sign means take away.") { c ->
-                BigEquation("5 − 2 = 3", c)
-            },
-            LessonCard("Another trick: start at 5 and hop back 2 on the number line. 4, 3!", PipMood.WOW) { c ->
-                MiniNumberLine(5, 2, c)
-            },
-            LessonCard("Your turn! Let's try 3 together.", PipMood.WOW) {
-                Text("🙌", fontSize = 90.sp)
-            },
-        )
-
-        Topic.MUL -> listOf(
-            LessonCard("Multiplying is a super speedy way to add equal groups!") { c ->
-                BigEquation("×", c, 120.sp)
-            },
-            LessonCard("Here are 3 plates. Each plate has 2 cookies.") { c ->
-                GroupsVisual(3, 2, "🍪", c)
-            },
-            LessonCard("Count by twos: 2, 4, 6. That's 6 cookies!", PipMood.WOW) { c ->
-                GroupsVisual(3, 2, "🍪", c, runningTotals = true)
-            },
-            LessonCard("2 plus 2 plus 2 makes 6. That's the same as 3 times 2!") { c ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    BigEquation("2 + 2 + 2 = 6", c, 40.sp)
-                    Gap(8.dp)
-                    BigEquation("3 × 2 = 6", c, 48.sp)
-                }
-            },
-            LessonCard("The times sign means groups of. So 3 times 2 means 3 groups of 2.") { c ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    BigEquation("3 × 2", c)
-                    FunText("3 groups of 2", 24.sp, NumColors.InkSoft)
-                }
-            },
-            LessonCard("Your turn! Let's try 3 together.", PipMood.WOW) {
-                Text("🙌", fontSize = 90.sp)
-            },
-        )
-
-        Topic.DIV -> listOf(
-            LessonCard("Dividing means sharing fairly, so everyone gets the same amount!") { c ->
-                BigEquation("÷", c, 120.sp)
-            },
-            LessonCard("Here are 6 strawberries and 2 hungry friends.") {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    PoppingItems(6, "🍓", size = 40.sp, perRow = 6)
-                    Gap(10.dp)
-                    Text("🐻   🐰", fontSize = 44.sp)
-                }
-            },
-            LessonCard("Give one to each friend, again and again, until they're all gone.", PipMood.WOW) { c ->
-                ShareVisual(6, 2, "🍓", c)
-            },
-            LessonCard("Each friend gets 3! So 6 divided by 2 equals 3.") { c ->
-                BigEquation("6 ÷ 2 = 3", c)
-            },
-            LessonCard("Psst, a secret! Dividing is multiplying backwards. 2 groups of 3 make 6.", PipMood.THINK) { c ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    BigEquation("2 × 3 = 6", c, 40.sp)
-                    FunText("⬇️", 30.sp)
-                    BigEquation("6 ÷ 2 = 3", c, 40.sp)
-                }
-            },
-            LessonCard("Your turn! Let's try 3 together.", PipMood.WOW) {
-                Text("🙌", fontSize = 90.sp)
-            },
-        )
-    }
-}
-
 @Composable
 fun LessonScreen(
     app: AppState,
     profile: Profile,
     topic: Topic,
-    onPractice: () -> Unit,
+    level: Level,
+    lessonIndex: Int,
+    onPractice: (lessonId: String) -> Unit,
     onBack: () -> Unit,
 ) {
-    val cards = remember(topic) { Lessons.cards(topic) }
+    val lessonList = remember(topic, level) { Lessons.forTopic(topic, level) }
+    val lesson = lessonList[lessonIndex.coerceIn(0, lessonList.lastIndex)]
+    val cards = lesson.cards
     var index by remember { mutableIntStateOf(0) }
     val card = cards[index]
     val last = index == cards.lastIndex
@@ -186,7 +76,7 @@ fun LessonScreen(
     Box(Modifier.fillMaxSize()) {
         FunBackground(topic.color)
         Column(Modifier.fillMaxSize()) {
-            TopBar("Learn: ${topic.title}", onBack = onBack, color = topic.color) {
+            TopBar("${lesson.emoji} ${lesson.title}", onBack = onBack, color = topic.color) {
                 RoundButton("🔊") { app.say(card.text) }
             }
             ProgressDots(cards.size, index, topic.color, Modifier.align(Alignment.CenterHorizontally))
@@ -248,7 +138,7 @@ fun LessonScreen(
                 ) {
                     if (last) {
                         app.play(Sfx.CELEBRATE)
-                        onPractice()
+                        onPractice(lesson.id)
                     } else {
                         app.play(Sfx.WHOOSH)
                         index++

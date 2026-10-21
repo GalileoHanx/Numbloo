@@ -65,6 +65,7 @@ fun ResultsScreen(
         val extra = buildString {
             if (result.sticker != null) append(" You got a new sticker: ${result.sticker.name}!")
             if (result.newHat != null) append(" And Pip got a ${result.newHat.label}!")
+            if (result.levelUnlocked != null) append(" WOW! ${result.levelUnlocked.title} ${result.topic.title} is now open!")
             if (result.closetOpened) append(" Three stars! Pip's closet is now open!")
             else if (result.unlocked.isNotEmpty()) append(" New clothes for Pip!")
         }
@@ -99,6 +100,16 @@ fun ResultsScreen(
                         FunText("New sticker!", 18.sp, result.topic.color)
                         Text(result.sticker.emoji, fontSize = 64.sp)
                         FunText(result.sticker.name, 20.sp)
+                    }
+                }
+                Gap(12.dp)
+            }
+            val opened = result.levelUnlocked
+            if (opened != null) {
+                PopIn(500) {
+                    Panel(Modifier.fillMaxWidth(), color = levelColor(opened).copy(alpha = 0.3f)) {
+                        FunText("${opened.emoji} ${opened.title} ${result.topic.title} is open!", 20.sp)
+                        FunText("You got every star! Bigger numbers are waiting.", 15.sp, NumColors.InkSoft)
                     }
                 }
                 Gap(12.dp)
@@ -191,8 +202,8 @@ fun StickerBookScreen(app: AppState, profile: Profile, onBack: () -> Unit) {
         }
         Gap(8.dp)
         FunText(
-            if (level.unlocked) "$have / ${stickers.size} collected"
-            else "🔒 Unlocks when ${level.title} level opens!",
+            if (profile.levelUnlocked(level)) "$have / ${stickers.size} collected"
+            else "🔒 Unlocks when ${level.title} opens — get every ⭐ in a ${level.previous?.title} operation!",
             17.sp,
             NumColors.InkSoft,
             Modifier.fillMaxWidth(),
@@ -217,7 +228,7 @@ fun StickerBookScreen(app: AppState, profile: Profile, onBack: () -> Unit) {
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center,
                         ) {
-                            Text(if (got) s.emoji else if (level.unlocked) "❓" else "🔒", fontSize = 36.sp)
+                            Text(if (got) s.emoji else if (profile.levelUnlocked(level)) "❓" else "🔒", fontSize = 36.sp)
                             FunText(if (got) s.name else "???", 12.sp, NumColors.InkSoft, maxLines = 1)
                         }
                     }

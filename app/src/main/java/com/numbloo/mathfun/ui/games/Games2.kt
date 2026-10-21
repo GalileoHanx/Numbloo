@@ -45,10 +45,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.numbloo.mathfun.audio.Sfx
 import com.numbloo.mathfun.logic.Question
+import com.numbloo.mathfun.model.Topic
 import com.numbloo.mathfun.ui.components.BouncyButton
 import com.numbloo.mathfun.ui.components.EmojiGrid
 import com.numbloo.mathfun.ui.components.FunText
@@ -68,10 +70,11 @@ import kotlin.math.min
 
 /* ===================================================================== SHARED BITS */
 
-/** A row of numbered pads (0..maxN) with a little rider standing on one of them. */
+/** A row of numbered pads (from..to) with a little rider standing on one of them. */
 @Composable
 private fun PadLine(
-    maxN: Int,
+    from: Int,
+    to: Int,
     at: Int,
     rider: String,
     wrong: List<Int>,
@@ -83,7 +86,7 @@ private fun PadLine(
     onTap: (Int) -> Unit,
 ) {
     Row(Modifier.fillMaxWidth()) {
-        for (n in 0..maxN) {
+        for (n in from..to) {
             val isWrong = n in wrong
             val isGlow = n == glowAt
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -122,16 +125,16 @@ private fun PadLine(
 
 /** A big round number, used by the machines. */
 @Composable
-private fun NumberBall(text: String, color: Color, modifier: Modifier = Modifier) {
+private fun NumberBall(text: String, color: Color, modifier: Modifier = Modifier, ball: Dp = 76.dp) {
     Box(
         modifier
-            .size(76.dp)
+            .size(ball)
             .clip(CircleShape)
             .background(color)
             .border(4.dp, color.darken(0.25f), CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        FunText(text, 30.sp, Color.White)
+        FunText(text, (ball.value * if (text.length >= 3) 0.3f else 0.4f).sp, Color.White)
     }
 }
 
@@ -194,7 +197,7 @@ private fun DrawScope.drawDots(n: Int, origin: Offset, area: Size, color: Color)
 /** Snail crawls forward on the number line. Tap where it stops. */
 @Composable
 fun SnailRaceGame(q: Question, attempts: Int, ctx: GameCtx, onAnswer: AnswerFn) {
-    val maxN = max(10, q.answer)
+    val lo = max(0, q.a - (10 - q.b) / 2).let { if (it + 10 < q.answer) q.answer - 10 else it }
     var snailAt by remember { mutableIntStateOf(q.a) }
     var busy by remember { mutableStateOf(false) }
     val wrongPads = remember { mutableStateListOf<Int>() }
@@ -205,7 +208,8 @@ fun SnailRaceGame(q: Question, attempts: Int, ctx: GameCtx, onAnswer: AnswerFn) 
         FunText("${q.a} + ${q.b} = ?", 46.sp, ctx.color)
         FunText("Crawl forward ${q.b}:  " + "➡️".repeat(q.b), 18.sp, NumColors.InkSoft)
         PadLine(
-            maxN = maxN,
+            from = lo,
+            to = lo + 10,
             at = snailAt,
             rider = "🐌",
             wrong = wrongPads,
@@ -252,10 +256,10 @@ fun SnailRaceGame(q: Question, attempts: Int, ctx: GameCtx, onAnswer: AnswerFn) 
     }
 }
 
-/** Some apples are hiding in a gift box. How many? (a + ? = total) */
+/** Something is hiding in a gift box: a + ? = total (or a ÷ ? = result at higher levels). */
 @Composable
 fun MysteryBoxGame(q: Question, attempts: Int, ctx: GameCtx, onAnswer: AnswerFn) {
-    val total = q.a + q.b
+    val total = q.result
     var opened by remember { mutableStateOf(false) }
     val inf = rememberInfiniteTransition(label = "box")
     val wiggle by inf.animateFloat(
@@ -264,30 +268,57 @@ fun MysteryBoxGame(q: Question, attempts: Int, ctx: GameCtx, onAnswer: AnswerFn)
         animationSpec = infiniteRepeatable(tween(260), RepeatMode.Reverse),
         label = "wiggle",
     )
+    val pictures = ctx.beginner && q.topic == Topic.ADD && total <= 20
+    val sym = q.topic.symbol
 
     GameColumn {
-        FunText("${q.a} + ? = $total", 44.sp, ctx.color)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            EmojiGrid(q.a, "🍎", size = 24.sp)
-            FunText("+", 30.sp, ctx.color, Modifier.padding(horizontal = 6.dp))
-            if (opened) {
-                PopIn { EmojiGrid(q.b, "🍏", size = 24.sp) }
-            } else {
-                Text("🎁", fontSize = 56.sp, modifier = Modifier.graphicsLayer { rotationZ = wiggle })
+        FunText("${q.a} $sym ? = $total", if (total >= 100 || q.a >= 100) 38.sp else 44.sp, ctx.color)
+        if (pictures) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                EmojiGrid(q.a, "🍎", size = 24.sp)
+                FunText("+", 30.sp, ctx.color, Modifier.padding(horizontal = 6.dp))
+                if (opened) {
+                    PopIn { EmojiGrid(q.b, "🍏", size = 24.sp) }
+                } else {
+                    Text("🎁", fontSize = 56.sp, modifier = Modifier.graphicsLayer { rotationZ = wiggle })
+                }
+            }
+            FunText("Now Pip has $total apples:", 16.sp, NumColors.InkSoft)
+            EmojiGrid(
+                count = total,
+                emoji = "🍎",
+                size = 22.sp,
+                faded = { i -> attempts >= 1 && i < q.a },
+                label = { i -> if (attempts >= 1 && i >= q.a) "${i - q.a + 1}" else null },
+            )
+            FunText("How many were in the box?", 18.sp, NumColors.InkSoft)
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                NumberBall("${q.a}", ctx.color, ball = 62.dp)
+                FunText(" $sym ", 28.sp, ctx.color)
+                Box(contentAlignment = Alignment.Center) {
+                    if (opened) {
+                        PopIn { NumberBall("${q.b}", NumColors.Good, ball = 62.dp) }
+                    } else {
+                        Text("🎁", fontSize = 46.sp, modifier = Modifier.graphicsLayer { rotationZ = wiggle })
+                    }
+                }
+                FunText(" = ", 28.sp, ctx.color)
+                NumberBall("$total", NumColors.Sun, ball = 62.dp)
+            }
+            FunText("What number is hiding in the box?", 18.sp, NumColors.InkSoft)
+            if (attempts >= 1) {
+                val hint = when (q.topic) {
+                    Topic.DIV -> "Think: $total × ? = ${q.a}"
+                    Topic.SUB -> "Think: ${q.a} − $total = ?"
+                    else -> "Think: $total − ${q.a} = ?"
+                }
+                FunText(hint, 20.sp, ctx.color)
             }
         }
-        FunText("Now Pip has $total apples:", 16.sp, NumColors.InkSoft)
-        EmojiGrid(
-            count = total,
-            emoji = "🍎",
-            size = 22.sp,
-            faded = { i -> attempts >= 1 && i < q.a },
-            label = { i -> if (attempts >= 1 && i >= q.a) "${i - q.a + 1}" else null },
-        )
-        FunText("How many were in the box?", 18.sp, NumColors.InkSoft)
         ChoiceRow(
             q.choices, q.answer, attempts, ctx, onAnswer,
-            correctLine = "Ta-da! ${q.b} apples were hiding in the box!",
+            correctLine = "Ta-da! ${q.b} was hiding in the box!",
             onCorrect = { opened = true },
         )
     }
@@ -409,12 +440,18 @@ fun MagicHatGame(q: Question, attempts: Int, ctx: GameCtx, onAnswer: AnswerFn) {
     val left = q.a - q.b
     var hidden by remember { mutableIntStateOf(0) }
     var revealed by remember { mutableStateOf(false) }
+    val big = q.a > 20
     LaunchedEffect(Unit) {
         delay(1500)
-        repeat(hid) {
-            hidden++
+        if (big) {
+            hidden = hid
             ctx.sfx(Sfx.WHOOSH)
-            delay(500)
+        } else {
+            repeat(hid) {
+                hidden++
+                ctx.sfx(Sfx.WHOOSH)
+                delay(500)
+            }
         }
     }
     val done = hidden >= hid
@@ -435,14 +472,21 @@ fun MagicHatGame(q: Question, attempts: Int, ctx: GameCtx, onAnswer: AnswerFn) {
             )
         }
         if (revealed) {
-            PopIn { EmojiGrid(hid, "🐰", size = 26.sp) }
+            PopIn {
+                if (big) FunText("🐰 × $hid jumped out!", 26.sp, NumColors.Good) else EmojiGrid(hid, "🐰", size = 26.sp)
+            }
         }
-        EmojiGrid(q.a - hidden, "🐰", size = 30.sp)
+        if (big) {
+            FunText("🐰 × ${q.a - hidden}", 40.sp, NumColors.Ink)
+        } else {
+            EmojiGrid(q.a - hidden, "🐰", size = 30.sp)
+        }
         if (done) {
             FunText("${q.a} − ? = $left", 40.sp, ctx.color)
             FunText("There were ${q.a} bunnies. Now there are $left. How many hid?", 17.sp, NumColors.InkSoft)
             if (attempts >= 1) {
-                FunText("Count up from $left: " + ((left + 1)..q.a).joinToString(", "), 16.sp, ctx.color)
+                val hint = if (hid <= 12) "Count up from $left: " + ((left + 1)..q.a).joinToString(", ") else "Think: ${q.a} − $left = ?"
+                FunText(hint, 16.sp, ctx.color)
             }
             ChoiceRow(
                 q.choices, q.answer, attempts, ctx, onAnswer,
@@ -625,10 +669,11 @@ fun NumberMachineGame(q: Question, attempts: Int, ctx: GameCtx, onAnswer: Answer
             else -> {
                 FunText("${q.a} $op = ?", 36.sp, ctx.color)
                 if (attempts >= 1) {
-                    val hint = if (divide) {
-                        "Count by ${q.b}s to ${q.a}: " + (1..q.answer).joinToString(", ") { "${it * q.b}" }
-                    } else {
-                        List(q.a) { "${q.b}" }.joinToString(" + ")
+                    val hint = when {
+                        divide && q.answer <= 10 -> "Count by ${q.b}s to ${q.a}: " + (1..q.answer).joinToString(", ") { "${it * q.b}" }
+                        divide -> "Think: ${q.b} × ? = ${q.a}"
+                        q.a <= 10 -> List(q.a) { "${q.b}" }.joinToString(" + ")
+                        else -> "Think: ${q.b} × ${q.a}"
                     }
                     FunText(hint, 16.sp, NumColors.InkSoft)
                 }

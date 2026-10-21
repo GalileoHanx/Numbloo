@@ -1,10 +1,12 @@
 package com.numbloo.mathfun.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -29,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.numbloo.mathfun.AppState
 import com.numbloo.mathfun.audio.Sfx
+import com.numbloo.mathfun.model.Curriculum
 import com.numbloo.mathfun.model.GameType
 import com.numbloo.mathfun.model.Hat
 import com.numbloo.mathfun.model.Level
@@ -40,7 +45,6 @@ import com.numbloo.mathfun.ui.components.BouncyButton
 import com.numbloo.mathfun.ui.components.FunBackground
 import com.numbloo.mathfun.ui.components.FunText
 import com.numbloo.mathfun.ui.components.Gap
-import com.numbloo.mathfun.ui.components.Pip
 import com.numbloo.mathfun.ui.components.PipMood
 import com.numbloo.mathfun.ui.components.ProfilePip
 import com.numbloo.mathfun.ui.components.SpeechBubble
@@ -48,13 +52,19 @@ import com.numbloo.mathfun.ui.components.StarsRow
 import com.numbloo.mathfun.ui.components.TopBar
 import com.numbloo.mathfun.ui.theme.NumColors
 
+fun levelColor(level: Level): Color = when (level) {
+    Level.BEGINNER -> NumColors.Grass
+    Level.INTERMEDIATE -> Color(0xFFFF8A3D)
+    Level.PRO -> Color(0xFF6A4BC4)
+}
+
 /* ---------------------------------------------------------------- Levels */
 
 @Composable
 fun LevelScreen(
     app: AppState,
     profile: Profile,
-    onBeginner: () -> Unit,
+    onLevel: (Level) -> Unit,
     onStickers: () -> Unit,
     onCloset: () -> Unit,
     onSwitchPlayer: () -> Unit,
@@ -122,14 +132,21 @@ fun LevelScreen(
             Gap(18.dp)
 
             Level.entries.forEach { level ->
-                LevelCard(level) {
-                    if (level.unlocked) {
+                val unlocked = profile.levelUnlocked(level)
+                val openCount = Topic.entries.count { profile.topicUnlocked(it, level) }
+                val sub = when {
+                    level == Level.BEGINNER -> level.blurb
+                    unlocked -> "$openCount of 4 operations open • ${level.blurb}"
+                    else -> "Get every ⭐ in a ${level.previous?.title} operation to open"
+                }
+                LevelCard(level, unlocked, sub) {
+                    if (unlocked) {
                         app.play(Sfx.TAP)
-                        onBeginner()
+                        onLevel(level)
                     } else {
                         app.play(Sfx.WRONG)
                         mood = PipMood.OOPS
-                        line = "Shh! ${level.title} land is still being built. Let's become Beginner champs first!"
+                        line = "${level.title} is locked! Collect all the stars in one ${level.previous?.title} operation, like Addition, to open it."
                         app.say(line)
                     }
                 }
@@ -151,15 +168,10 @@ private fun HatProgress(profile: Profile) {
 }
 
 @Composable
-private fun LevelCard(level: Level, onClick: () -> Unit) {
-    val color = when (level) {
-        Level.BEGINNER -> NumColors.Grass
-        Level.INTERMEDIATE -> Color(0xFFFF8A3D)
-        Level.PRO -> Color(0xFF6A4BC4)
-    }
+private fun LevelCard(level: Level, unlocked: Boolean, sub: String, onClick: () -> Unit) {
     BouncyBox(
-        color = if (level.unlocked) color else NumColors.Locked,
-        modifier = Modifier.fillMaxWidth().height(108.dp),
+        color = if (unlocked) levelColor(level) else NumColors.Locked,
+        modifier = Modifier.fillMaxWidth().height(112.dp),
         onClick = onClick,
     ) {
         Row(
@@ -172,9 +184,9 @@ private fun LevelCard(level: Level, onClick: () -> Unit) {
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 FunText(level.title, 26.sp, Color.White, align = TextAlign.Start)
-                FunText(level.blurb, 14.sp, Color.White, align = TextAlign.Start, weight = FontWeight.Bold)
+                FunText(sub, 13.sp, Color.White, align = TextAlign.Start, weight = FontWeight.Bold, maxLines = 2)
             }
-            Text(if (level.unlocked) "▶" else "🔒", fontSize = 28.sp, color = Color.White)
+            Text(if (unlocked) "▶" else "🔒", fontSize = 28.sp, color = Color.White)
         }
     }
 }
@@ -185,12 +197,23 @@ private fun LevelCard(level: Level, onClick: () -> Unit) {
 fun TopicMapScreen(
     app: AppState,
     profile: Profile,
+    level: Level,
     onTopic: (Topic) -> Unit,
     onBack: () -> Unit,
 ) {
-    LaunchedEffect(Unit) { app.say("Welcome to Beginner Island! Pick a topic.") }
+    var line by remember {
+        mutableStateOf(
+            when {
+                level != Level.BEGINNER -> "Welcome to ${level.title} Island! Bigger numbers live here."
+                profile.age <= 5 -> "Start with Addition, it's yummy!"
+                else -> "Pick any operation. I'll explain first!"
+            }
+        )
+    }
+    var mood by remember { mutableStateOf(PipMood.HAPPY) }
+    LaunchedEffect(Unit) { app.say(line) }
     Column(Modifier.fillMaxSize()) {
-        TopBar("Beginner Island 🏝️", onBack = onBack)
+        TopBar("${level.title} Island 🏝️", onBack = onBack, color = levelColor(level))
         Column(
             Modifier
                 .fillMaxSize()
@@ -199,19 +222,24 @@ fun TopicMapScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                ProfilePip(profile, Modifier.size(90.dp))
-                SpeechBubble(
-                    if (profile.age <= 5) "Start with Addition, it's yummy!" else "Pick any topic. I'll explain first!",
-                    Modifier.weight(1f),
-                )
+                ProfilePip(profile, Modifier.size(90.dp), mood = mood)
+                SpeechBubble(line, Modifier.weight(1f))
             }
             Gap(12.dp)
             Topic.entries.toList().chunked(2).forEach { pair ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     pair.forEach { t ->
-                        TopicCard(t, profile, Modifier.weight(1f)) {
-                            app.play(Sfx.TAP)
-                            onTopic(t)
+                        val open = profile.topicUnlocked(t, level)
+                        TopicCard(t, level, profile, open, Modifier.weight(1f)) {
+                            if (open) {
+                                app.play(Sfx.TAP)
+                                onTopic(t)
+                            } else {
+                                app.play(Sfx.WRONG)
+                                mood = PipMood.OOPS
+                                line = "Locked! Get every star in ${level.previous?.title} ${t.title} to open this one."
+                                app.say(line)
+                            }
                         }
                     }
                 }
@@ -222,11 +250,11 @@ fun TopicMapScreen(
 }
 
 @Composable
-private fun TopicCard(topic: Topic, profile: Profile, modifier: Modifier, onClick: () -> Unit) {
-    val stars = profile.topicStars(topic)
-    val maxStars = (topic.games.size + 1) * 3
-    val challenge = profile.age <= 5 && (topic == Topic.MUL || topic == Topic.DIV)
-    BouncyBox(color = topic.color, modifier = modifier.height(200.dp), onClick = onClick) {
+private fun TopicCard(topic: Topic, level: Level, profile: Profile, open: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val stars = profile.topicStars(topic, level)
+    val maxStars = Curriculum.maxStars(topic, level)
+    val challenge = level == Level.BEGINNER && profile.age <= 5 && (topic == Topic.MUL || topic == Topic.DIV)
+    BouncyBox(color = if (open) topic.color else NumColors.Locked, modifier = modifier.height(206.dp), onClick = onClick) {
         Column(
             Modifier
                 .fillMaxSize()
@@ -235,9 +263,14 @@ private fun TopicCard(topic: Topic, profile: Profile, modifier: Modifier, onClic
             verticalArrangement = Arrangement.Center,
         ) {
             FunText(topic.symbol, 54.sp, Color.White)
-            Text(topic.emoji, fontSize = 30.sp)
+            Text(if (open) topic.emoji else "🔒", fontSize = 30.sp)
             FunText(topic.title, 18.sp, Color.White, maxLines = 1)
-            FunText("⭐ $stars / $maxStars", 14.sp, Color.White)
+            if (open) {
+                FunText("⭐ $stars / $maxStars", 14.sp, Color.White)
+                if (stars >= maxStars && level.next != null) Badge("${level.next?.title} open!", Color.Black.copy(alpha = 0.25f))
+            } else {
+                FunText("All ⭐ in ${level.previous?.title} first", 12.sp, Color.White)
+            }
             if (challenge) {
                 Gap(4.dp)
                 Badge("Big-kid challenge!", Color.Black.copy(alpha = 0.25f))
@@ -253,18 +286,22 @@ fun TopicHubScreen(
     app: AppState,
     profile: Profile,
     topic: Topic,
-    onLesson: () -> Unit,
+    level: Level,
+    onLesson: (Int) -> Unit,
     onGame: (GameType) -> Unit,
     onBack: () -> Unit,
 ) {
-    val stats = profile.stats(topic)
+    val stats = profile.stats(topic, level)
+    val lessons = remember(topic, level) { Lessons.forTopic(topic, level) }
+    val stars = profile.topicStars(topic, level)
+    val maxStars = Curriculum.maxStars(topic, level)
     LaunchedEffect(Unit) {
-        app.say(if (!stats.lessonDone) "${topic.tagline} Tap Learn with Pip to start!" else "Pick a game!")
+        app.say(if (!stats.lessonDone) "${topic.tagline} Start with a lesson!" else "Pick a lesson or a game!")
     }
     Box(Modifier.fillMaxSize()) {
         FunBackground(topic.color)
         Column(Modifier.fillMaxSize()) {
-            TopBar(topic.title, onBack = onBack, color = topic.color)
+            TopBar("${level.emoji} ${topic.title}", onBack = onBack, color = topic.color)
             Column(
                 Modifier
                     .fillMaxSize()
@@ -277,22 +314,36 @@ fun TopicHubScreen(
                     SpeechBubble(topic.tagline, Modifier.weight(1f))
                 }
                 Gap(6.dp)
-                FunText("Puzzle level: ${stats.tierName}", 14.sp, NumColors.InkSoft, weight = FontWeight.Bold)
-                Gap(12.dp)
+                FunText("${level.title} • Puzzle level: ${stats.tierName}", 14.sp, NumColors.InkSoft, weight = FontWeight.Bold)
+                Gap(8.dp)
+                LevelProgress(stars, maxStars, level, topic)
+                Gap(14.dp)
 
-                HubCard(
-                    emoji = "📖",
-                    title = "Learn with Pip",
-                    blurb = "A quick, silly lesson + 3 practice tries",
-                    color = topic.color,
-                    badge = if (stats.lessonDone) "Done ✓" else "Start here!",
-                    badgeColor = if (stats.lessonDone) NumColors.Good else Color(0xFFFF4D6D),
-                    stars = -1,
-                ) { app.play(Sfx.TAP); onLesson() }
-                Gap(16.dp)
+                FunText("Lessons 📖", 22.sp, NumColors.Ink, Modifier.fillMaxWidth(), align = TextAlign.Start)
+                Gap(8.dp)
+                lessons.forEachIndexed { i, l ->
+                    val done = l.id in stats.lessons
+                    val firstNotDone = lessons.indexOfFirst { it.id !in stats.lessons }
+                    HubCard(
+                        emoji = l.emoji,
+                        title = "${i + 1}. ${l.title}",
+                        blurb = "A quick, silly lesson + 3 practice tries",
+                        color = topic.color,
+                        badge = when {
+                            done -> "Done ✓"
+                            i == firstNotDone -> "Next!"
+                            else -> null
+                        },
+                        badgeColor = if (done) NumColors.Good else Color(0xFFFF4D6D),
+                        stars = -1,
+                        height = 84,
+                    ) { app.play(Sfx.TAP); onLesson(i) }
+                    Gap(10.dp)
+                }
+                Gap(10.dp)
                 FunText("Games 🎮", 22.sp, NumColors.Ink, Modifier.fillMaxWidth(), align = TextAlign.Start)
                 Gap(8.dp)
-                (topic.games + GameType.QUIZ).forEach { g ->
+                Curriculum.starGames(topic, level).forEach { g ->
                     HubCard(
                         emoji = g.emoji,
                         title = g.title,
@@ -309,6 +360,37 @@ fun TopicHubScreen(
     }
 }
 
+/** "⭐ 14 / 24 — get them all to open Intermediate" with a little bar. */
+@Composable
+private fun LevelProgress(stars: Int, maxStars: Int, level: Level, topic: Topic) {
+    val next = level.next
+    val text = when {
+        next == null -> "⭐ $stars / $maxStars — Pro champion stars!"
+        stars >= maxStars -> "⭐ $stars / $maxStars — ${next.title} ${topic.title} is open! 🎉"
+        else -> "⭐ $stars / $maxStars — get them all to open ${next.title} ${topic.title}"
+    }
+    Column(Modifier.fillMaxWidth()) {
+        FunText(text, 14.sp, NumColors.Ink, weight = FontWeight.Bold, align = TextAlign.Start)
+        Gap(4.dp)
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(14.dp)
+                .clip(RoundedCornerShape(7.dp))
+                .background(NumColors.Locked.copy(alpha = 0.6f))
+        ) {
+            val frac = if (maxStars == 0) 0f else (stars.toFloat() / maxStars).coerceIn(0f, 1f)
+            Box(
+                Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(frac)
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(NumColors.Sun)
+            )
+        }
+    }
+}
+
 @Composable
 private fun HubCard(
     emoji: String,
@@ -319,20 +401,21 @@ private fun HubCard(
     textColor: Color = Color.White,
     badge: String? = null,
     badgeColor: Color = NumColors.Good,
+    height: Int = 96,
     onClick: () -> Unit,
 ) {
-    BouncyBox(color = color, modifier = Modifier.fillMaxWidth().height(96.dp), onClick = onClick) {
+    BouncyBox(color = color, modifier = Modifier.fillMaxWidth().height(height.dp), onClick = onClick) {
         Row(
             Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(emoji, fontSize = 40.sp)
+            Text(emoji, fontSize = 36.sp)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    FunText(title, 21.sp, textColor, align = TextAlign.Start, maxLines = 1)
+                    FunText(title, 20.sp, textColor, Modifier.weight(1f, fill = false), align = TextAlign.Start, maxLines = 1)
                     if (badge != null) {
                         Spacer(Modifier.width(8.dp))
                         Badge(badge, badgeColor)

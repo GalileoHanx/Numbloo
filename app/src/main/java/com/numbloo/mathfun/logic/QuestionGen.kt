@@ -1,6 +1,7 @@
 package com.numbloo.mathfun.logic
 
 import com.numbloo.mathfun.model.GameType
+import com.numbloo.mathfun.model.Level
 import com.numbloo.mathfun.model.Topic
 import kotlin.math.max
 import kotlin.math.min
@@ -23,6 +24,15 @@ data class Question(
     val missingIndex: Int = -1,
     val step: Int = 0,
 ) {
+    /** The full result of a op b, even when [answer] is a hidden part (e.g. 3 + ? = 7). */
+    val result: Int
+        get() = when (topic) {
+            Topic.ADD -> a + b
+            Topic.SUB -> a - b
+            Topic.MUL -> a * b
+            Topic.DIV -> if (b != 0) a / b else 0
+        }
+
     val equation: String get() = "$a ${topic.symbol} $b"
     val spokenEquation: String get() = "$a ${topic.spokenOp} $b"
 }
@@ -35,16 +45,32 @@ object QuestionGen {
 
     private val rnd = Random.Default
 
-    fun make(game: GameType, topic: Topic, tier: Int, age: Int): Question {
+    fun make(game: GameType, topic: Topic, level: Level, tier: Int, age: Int): Question {
         val t = tier.coerceIn(1, 3)
-        val n = if (age <= 5) 3 else 4 // number of answer buttons
+        val n = if (age <= 5 && level == Level.BEGINNER) 3 else 4 // number of answer buttons
+        if (level != Level.BEGINNER) {
+            return when (game) {
+                GameType.SNAIL_RACE, GameType.FROG_HOP -> windowed(topic, t, n)
+                GameType.KANGAROO_JUMPS -> skip(t, n, level)
+                GameType.MYSTERY_BOX, GameType.MAGIC_HAT -> hideB(levelQuestion(topic, level, t, n), n)
+                else -> levelQuestion(topic, level, t, n)
+            }
+        }
         return when (game) {
+            GameType.SUM_SNAP -> add(t, n, maxSum = 10)
+            GameType.SILLY_ADD -> add(t, n, maxSum = 20)
+            GameType.DIFF_SNAP -> sub(t, n, maxStart = 10)
+            GameType.SILLY_SUB -> sub(t, n, maxStart = 20)
+            GameType.TIMES_SNAP -> mul(t, n, maxGroups = 5, maxPer = 5)
+            GameType.SILLY_MUL -> mul(t, n, maxGroups = 5, maxPer = 10)
+            GameType.SHARE_SNAP -> div(t, n, maxDivisor = 5, maxTotal = 20)
+            GameType.SILLY_DIV -> div(t, n, maxDivisor = 5, maxTotal = 30)
             GameType.FEED_PIP -> add(t, n, maxSum = 10)
             GameType.BALLOON_POP -> add(t, n, maxSum = 20)
             GameType.FROG_HOP -> sub(t, n, maxStart = 10)
             GameType.SNEAKY_SQUIRREL -> sub(t, n, maxStart = 15)
             GameType.COOKIE_PLATES -> mul(t, n, maxGroups = 5, maxPer = 5)
-            GameType.KANGAROO_JUMPS -> skip(t, n)
+            GameType.KANGAROO_JUMPS -> skip(t, n, Level.BEGINNER)
             GameType.PIZZA_SHARE -> div(t, n, maxDivisor = 4, maxTotal = 12)
             GameType.PACK_BOXES -> div(t, n, maxDivisor = 5, maxTotal = 15)
             GameType.DOMINO_DOTS -> domino(t, n)
@@ -69,11 +95,11 @@ object QuestionGen {
     }
 
     /** A fresh question that is not the same as [previous]. */
-    fun makeDifferent(game: GameType, topic: Topic, tier: Int, age: Int, previous: Question?): Question {
-        var q = make(game, topic, tier, age)
+    fun makeDifferent(game: GameType, topic: Topic, level: Level, tier: Int, age: Int, previous: Question?): Question {
+        var q = make(game, topic, level, tier, age)
         var tries = 0
         while (previous != null && tries < 8 && q.a == previous.a && q.b == previous.b && q.answer == previous.answer) {
-            q = make(game, topic, tier, age)
+            q = make(game, topic, level, tier, age)
             tries++
         }
         return q
@@ -81,10 +107,9 @@ object QuestionGen {
 
     /** Same numbers, but the hidden one is b ("3 + ? = 7", "7 − ? = 4"). */
     private fun hideB(q: Question, n: Int): Question {
-        val shown = if (q.topic == Topic.ADD) q.a + q.b else q.answer
         return q.copy(
             answer = q.b,
-            choices = choices(q.b, n, listOf(q.b + 1, q.b - 1, q.b + 2, q.b - 2, q.a, shown)),
+            choices = choices(q.b, n, listOf(q.b + 1, q.b - 1, q.b + 2, q.b - 2, q.a, q.result, q.b + 10)),
         )
     }
 
@@ -187,13 +212,29 @@ object QuestionGen {
         )
     }
 
-    private fun skip(t: Int, n: Int): Question {
-        val step = when (t) {
-            1 -> listOf(1, 2).random(rnd)
-            2 -> listOf(2, 5, 10).random(rnd)
-            else -> listOf(3, 4, 5, 10).random(rnd)
+    private fun skip(t: Int, n: Int, level: Level): Question {
+        val step = when (level) {
+            Level.BEGINNER -> when (t) {
+                1 -> listOf(1, 2).random(rnd)
+                2 -> listOf(2, 5, 10).random(rnd)
+                else -> listOf(3, 4, 5, 10).random(rnd)
+            }
+            Level.INTERMEDIATE -> when (t) {
+                1 -> listOf(3, 4).random(rnd)
+                2 -> listOf(6, 7).random(rnd)
+                else -> listOf(8, 9).random(rnd)
+            }
+            Level.PRO -> when (t) {
+                1 -> listOf(11, 20).random(rnd)
+                2 -> listOf(12, 15, 25).random(rnd)
+                else -> listOf(13, 50, 75).random(rnd)
+            }
         }
-        val start = step * rnd.nextInt(0, if (t == 1) 2 else 4)
+        val start = when (level) {
+            Level.BEGINNER -> step * rnd.nextInt(0, if (t == 1) 2 else 4)
+            Level.INTERMEDIATE -> step * rnd.nextInt(1, 5)
+            Level.PRO -> step * rnd.nextInt(1, 4)
+        }
         val seq = List(5) { start + it * step }
         val missing = rnd.nextInt(1, 5)
         val ans = seq[missing]
@@ -202,6 +243,144 @@ object QuestionGen {
             choices(ans, n, listOf(ans + 1, ans - 1, ans + step, ans - step, ans + 2)),
             sequence = seq, missingIndex = missing, step = step,
         )
+    }
+
+    /* ------------------------------------------------ Intermediate and Pro */
+
+    private fun r(from: Int, to: Int): Int = if (to <= from) from else rnd.nextInt(from, to + 1)
+
+    private fun levelQuestion(topic: Topic, level: Level, t: Int, n: Int): Question {
+        val (a, b) = if (level == Level.INTERMEDIATE) intermediatePair(topic, t) else proPair(topic, t)
+        return build(topic, a, b, n)
+    }
+
+    private fun build(topic: Topic, a: Int, b: Int, n: Int): Question {
+        val ans = when (topic) {
+            Topic.ADD -> a + b
+            Topic.SUB -> a - b
+            Topic.MUL -> a * b
+            Topic.DIV -> a / b
+        }
+        val extra = when (topic) {
+            Topic.ADD, Topic.SUB -> listOf(ans + 10, ans - 10)
+            Topic.MUL -> listOf(ans + b, ans - b, ans + a)
+            Topic.DIV -> listOf(ans + 2, ans - 2, b)
+        }
+        return Question(topic, a, b, ans, choices(ans, n, listOf(ans + 1, ans - 1, ans + 2) + extra))
+    }
+
+    /** Numbers to 50, bridging through ten, all times tables. */
+    private fun intermediatePair(topic: Topic, t: Int): Pair<Int, Int> = when (topic) {
+        Topic.ADD -> when (t) {
+            1 -> {
+                val a = r(10, 18)
+                a to r(1, 9 - a % 10)
+            }
+            2 -> if (rnd.nextBoolean()) r(1, 4) * 10 to r(1, 4) * 10 else {
+                val a = r(20, 38)
+                a to r(1, max(1, 9 - a % 10))
+            }
+            else -> {
+                var a = r(12, 44)
+                if (a % 10 < 2) a += 3
+                a to r(10 - a % 10, 9)
+            }
+        }
+        Topic.SUB -> when (t) {
+            1 -> {
+                var a = r(11, 19)
+                if (a % 10 == 0) a = 15
+                a to r(1, a % 10)
+            }
+            2 -> {
+                val a = r(3, 9)
+                a * 10 to r(1, a - 1) * 10
+            }
+            else -> {
+                var a = r(21, 50)
+                if (a % 10 > 7) a -= 2
+                a to r(a % 10 + 1, 9)
+            }
+        }
+        Topic.MUL -> {
+            val table = when (t) {
+                1 -> listOf(2, 5, 10)
+                2 -> listOf(3, 4)
+                else -> listOf(6, 7, 8, 9)
+            }.random(rnd)
+            r(1, 10) to table
+        }
+        Topic.DIV -> {
+            val d = when (t) {
+                1 -> listOf(2, 5, 10)
+                2 -> listOf(3, 4)
+                else -> listOf(6, 7, 8, 9)
+            }.random(rnd)
+            d * r(1, 10) to d
+        }
+    }
+
+    /** Two-digit numbers, carrying and borrowing, bigger times and shares. */
+    private fun proPair(topic: Topic, t: Int): Pair<Int, Int> {
+        var last = 20 to 10
+        for (attempt in 0 until 300) {
+            val p: Pair<Int, Int> = when (topic) {
+                Topic.ADD -> when (t) {
+                    1 -> r(11, 59) to r(11, 39)
+                    2 -> r(15, 79) to r(12, 59)
+                    else -> r(40, 99) to r(25, 99)
+                }
+                Topic.SUB -> when (t) {
+                    1 -> r(30, 99) to r(11, 29)
+                    2 -> r(30, 99) to r(11, 59)
+                    else -> r(100, 199) to r(12, 99)
+                }
+                Topic.MUL -> when (t) {
+                    1 -> r(2, 9) to r(1, 5) * 10
+                    2 -> r(2, 5) to r(11, 19)
+                    else -> r(3, 9) to r(12, 25)
+                }
+                Topic.DIV -> {
+                    val d = when (t) {
+                        1, 2 -> r(2, 5)
+                        else -> r(3, 9)
+                    }
+                    val q = when (t) {
+                        1 -> r(1, 3) * 10
+                        2 -> r(11, 19)
+                        else -> r(12, 25)
+                    }
+                    d * q to d
+                }
+            }
+            val (a, b) = p
+            val ok = when (topic) {
+                Topic.ADD -> when (t) {
+                    1 -> a % 10 + b % 10 < 10 && a + b < 100
+                    2 -> a % 10 + b % 10 >= 10 && a + b <= 100
+                    else -> a + b <= 200 && a % 10 + b % 10 >= 10
+                }
+                Topic.SUB -> when (t) {
+                    1 -> b % 10 <= a % 10 && a - b >= 10
+                    2 -> b % 10 > a % 10 && a - b >= 5
+                    else -> a - b >= 10
+                }
+                else -> true
+            }
+            if (ok) return p
+            last = p
+        }
+        return last
+    }
+
+    /** For number-line games: small hops (2..9) from a bigger starting number. */
+    private fun windowed(topic: Topic, t: Int, n: Int): Question {
+        val hop = r(2, if (t == 1) 5 else 9)
+        return if (topic == Topic.SUB) {
+            build(Topic.SUB, r(max(12, hop + 1), if (t == 3) 50 else 30), hop, n)
+        } else {
+            build(Topic.ADD, r(10, if (t == 3) 45 else 30), hop, n)
+        }
     }
 
     /** The answer plus believable wrong answers, sorted small to big. */

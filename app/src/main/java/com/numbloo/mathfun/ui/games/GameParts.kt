@@ -65,7 +65,7 @@ fun ChoiceRow(
                 text = c.toString(),
                 color = if (isWrong) NumColors.Locked else ctx.color,
                 enabled = !isWrong,
-                fontSize = 34.sp,
+                fontSize = if (choices.any { it >= 100 }) 26.sp else 34.sp,
                 height = 78.dp,
                 modifier = Modifier
                     .weight(1f)

@@ -29,15 +29,15 @@ import com.numbloo.mathfun.logic.Question
 import com.numbloo.mathfun.logic.QuestionGen
 import com.numbloo.mathfun.model.GameResult
 import com.numbloo.mathfun.model.GameType
-import com.numbloo.mathfun.model.Glasses
-import com.numbloo.mathfun.model.Hat
-import com.numbloo.mathfun.model.Neck
+import com.numbloo.mathfun.model.Level
 import com.numbloo.mathfun.model.Profile
 import com.numbloo.mathfun.model.Quips
 import com.numbloo.mathfun.model.Topic
 import com.numbloo.mathfun.ui.components.ConfettiBurst
 import com.numbloo.mathfun.ui.components.FunBackground
-import com.numbloo.mathfun.ui.components.Pip
+import com.numbloo.mathfun.ui.components.LookPip
+import com.numbloo.mathfun.ui.components.PipLook
+import com.numbloo.mathfun.ui.components.pipLook
 import com.numbloo.mathfun.ui.components.PipMood
 import com.numbloo.mathfun.ui.components.ProgressDots
 import com.numbloo.mathfun.ui.components.RoundButton
@@ -61,23 +61,25 @@ import com.numbloo.mathfun.ui.games.KangarooJumpsGame
 import com.numbloo.mathfun.ui.games.PackBoxesGame
 import com.numbloo.mathfun.ui.games.PizzaShareGame
 import com.numbloo.mathfun.ui.games.QuizGame
+import com.numbloo.mathfun.ui.games.SillyPipGame
+import com.numbloo.mathfun.ui.games.SnapGame
 import com.numbloo.mathfun.ui.games.SneakySquirrelGame
 import com.numbloo.mathfun.ui.theme.NumColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.max
 
-/** What every mini-game gets: colours, Pip's look, sounds and voice. */
+/** What every mini-game gets: colours, Pip's look, level, sounds and voice. */
 class GameCtx(
     private val app: AppState,
     val color: Color,
     val age: Int,
-    val pipColor: Color,
-    val hat: Hat,
+    val look: PipLook,
     val guided: Boolean,
-    val glasses: Glasses = Glasses.NONE,
-    val neck: Neck = Neck.NONE,
+    val level: Level,
+    val topic: Topic,
 ) {
+    val beginner: Boolean get() = level == Level.BEGINNER
     fun sfx(s: Sfx) = app.play(s)
     fun say(text: String, queue: Boolean = false) = app.say(text, queue)
 }
@@ -87,7 +89,7 @@ typealias AnswerFn = (correct: Boolean, line: String?) -> Unit
 
 fun instructionFor(game: GameType, q: Question): String = when (game) {
     GameType.FEED_PIP -> "Feed Pip ${q.a} + ${q.b} apples! Tap the tree, then press Done."
-    GameType.BALLOON_POP -> "Pop the balloon that answers ${q.a} + ${q.b}!"
+    GameType.BALLOON_POP -> "Pop the balloon that answers ${q.spokenEquation}!"
     GameType.FROG_HOP -> "Froggy is on ${q.a}. He hops back ${q.b}. Tap where he lands!"
     GameType.SNEAKY_SQUIRREL -> "${q.a} acorns... Sneaky Squirrel grabs ${q.b}! How many are left?"
     GameType.COOKIE_PLATES -> "Put ${q.b} cookies on each plate. Tap the plates!"
@@ -96,7 +98,11 @@ fun instructionFor(game: GameType, q: Question): String = when (game) {
     GameType.PACK_BOXES -> "${q.a} eggs. Each box holds ${q.b}. Tap Pack!"
     GameType.DOMINO_DOTS -> "How many dots are on the domino altogether?"
     GameType.SNAIL_RACE -> "Snail is on ${q.a}. He crawls forward ${q.b}. Tap where he stops!"
-    GameType.MYSTERY_BOX -> "Pip had ${q.a} apples. Now he has ${q.a + q.b}. How many were in the mystery box?"
+    GameType.MYSTERY_BOX -> if (q.topic == Topic.DIV) {
+        "${q.a} shared by what number makes ${q.result}? Find the mystery number!"
+    } else {
+        "Pip had ${q.a}. Now he has ${q.result}. How many were in the mystery box?"
+    }
     GameType.BUBBLE_POP -> "Pop ${q.b} bubbles! Then count what's left."
     GameType.TOWER_COMPARE -> "How many more blocks does the tall tower have?"
     GameType.MAGIC_HAT -> "There were ${q.a} bunnies. Watch the magic hat! How many hide?"
@@ -106,6 +112,12 @@ fun instructionFor(game: GameType, q: Question): String = when (game) {
     GameType.MONSTER_MUNCH -> "Gloop eats ${q.b} cookies in one bite. Tap Gloop to munch!"
     GameType.CUPCAKE_TRAYS -> "${q.a} cupcakes, ${q.b} on each tray. How many trays?"
     GameType.DIVIDE_MACHINE -> "Put ${q.a} into the divide by ${q.b} machine. Crank it!"
+    GameType.SUM_SNAP -> "Find two cards that add up to ${q.result}!"
+    GameType.DIFF_SNAP -> "Find two cards that are ${q.result} apart!"
+    GameType.TIMES_SNAP -> "Find two cards that multiply to make ${q.result}!"
+    GameType.SHARE_SNAP -> "Find a big card and a small card that divide to make ${q.result}!"
+    GameType.SILLY_ADD, GameType.SILLY_SUB, GameType.SILLY_MUL, GameType.SILLY_DIV ->
+        "Pip did some math. Is he right, or is he being silly?"
     GameType.QUIZ -> "What is ${q.spokenEquation}?"
 }
 
@@ -114,28 +126,27 @@ fun GameScreen(
     app: AppState,
     profile: Profile,
     topic: Topic,
+    level: Level,
     game: GameType,
-    guided: Boolean,
+    lessonId: String?,
     onExit: () -> Unit,
     onFinished: (GameResult) -> Unit,
 ) {
+    val guided = lessonId != null
     val total = when {
         guided -> 3
         game == GameType.QUIZ -> 8
         else -> 5
     }
-    val startTier = remember { if (guided) 1 else profile.stats(topic).tier }
+    val startTier = remember { if (guided) 1 else profile.stats(topic, level).tier }
     val ctx = remember {
-        GameCtx(
-            app, topic.color, profile.age, NumColors.pip(profile.colorIndex), profile.hat, guided,
-            profile.glasses, profile.neck,
-        )
+        GameCtx(app, topic.color, profile.age, profile.pipLook(), guided, level, topic)
     }
     val scope = rememberCoroutineScope()
 
     var tier by remember { mutableIntStateOf(startTier) }
     var index by remember { mutableIntStateOf(0) }
-    var question by remember { mutableStateOf(QuestionGen.make(game, topic, startTier, profile.age)) }
+    var question by remember { mutableStateOf(QuestionGen.make(game, topic, level, startTier, profile.age)) }
     var attempts by remember { mutableIntStateOf(0) }
     var firstTry by remember { mutableIntStateOf(0) }
     var mistakes by remember { mutableIntStateOf(0) }
@@ -163,7 +174,7 @@ fun GameScreen(
             mistakes <= max(1, total / 4) -> 2
             else -> 1
         }
-        val result = app.recordResult(profile.id, topic, game, guided, stars, firstTry, total)
+        val result = app.recordResult(profile.id, topic, level, game, lessonId, stars, firstTry, total)
         onFinished(result)
     }
 
@@ -190,7 +201,7 @@ fun GameScreen(
                             tier--
                             wrongStreak = 0
                         }
-                        question = QuestionGen.makeDifferent(game, topic, tier, profile.age, question)
+                        question = QuestionGen.makeDifferent(game, topic, level, tier, profile.age, question)
                         attempts = 0
                         index++
                         locked = false
@@ -233,7 +244,7 @@ fun GameScreen(
                     .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Pip(Modifier.size(78.dp), mood = mood, color = ctx.pipColor, hat = ctx.hat, glasses = ctx.glasses, neck = ctx.neck)
+                LookPip(ctx.look, Modifier.size(78.dp), mood = mood)
                 Spacer(Modifier.width(4.dp))
                 SpeechBubble(line, Modifier.weight(1f), size = 16.sp)
             }
@@ -265,6 +276,10 @@ fun GameScreen(
                         GameType.MONSTER_MUNCH -> MonsterMunchGame(question, attempts, ctx, onAnswer)
                         GameType.CUPCAKE_TRAYS -> CupcakeTraysGame(question, attempts, ctx, onAnswer)
                         GameType.DIVIDE_MACHINE -> NumberMachineGame(question, attempts, ctx, onAnswer, divide = true)
+                        GameType.SUM_SNAP, GameType.DIFF_SNAP, GameType.TIMES_SNAP, GameType.SHARE_SNAP ->
+                            SnapGame(question, attempts, ctx, onAnswer)
+                        GameType.SILLY_ADD, GameType.SILLY_SUB, GameType.SILLY_MUL, GameType.SILLY_DIV ->
+                            SillyPipGame(question, attempts, ctx, onAnswer)
                         GameType.QUIZ -> QuizGame(question, attempts, ctx, onAnswer)
                     }
                 }

@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.numbloo.mathfun.AppState
 import com.numbloo.mathfun.audio.Sfx
+import com.numbloo.mathfun.model.Curriculum
+import com.numbloo.mathfun.model.Level
 import com.numbloo.mathfun.model.Profile
 import com.numbloo.mathfun.model.Topic
 import com.numbloo.mathfun.ui.components.BouncyButton
@@ -160,6 +162,7 @@ fun ParentsScreen(app: AppState, onBack: () -> Unit) {
                 PlayerReport(
                     p = p,
                     onAgeChange = { app.setAge(p.id, it) },
+                    onUnlockAll = { app.setAllUnlocked(p.id, it) },
                     onReset = { confirm = "reset" to p },
                     onDelete = { confirm = "delete" to p },
                 )
@@ -211,6 +214,7 @@ private fun SettingRow(label: String, value: Boolean, onChange: (Boolean) -> Uni
 private fun PlayerReport(
     p: Profile,
     onAgeChange: (Int) -> Unit,
+    onUnlockAll: (Boolean) -> Unit,
     onReset: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -241,23 +245,38 @@ private fun PlayerReport(
             }
         }
         Gap(8.dp)
-        // Per-topic report
-        Row(Modifier.fillMaxWidth()) {
-            FunText("Topic", 13.sp, NumColors.InkSoft, Modifier.weight(1.6f), align = TextAlign.Start)
-            FunText("Lesson", 13.sp, NumColors.InkSoft, Modifier.weight(1f))
-            FunText("Games", 13.sp, NumColors.InkSoft, Modifier.weight(1f))
-            FunText("Right", 13.sp, NumColors.InkSoft, Modifier.weight(1f))
-            FunText("Level", 13.sp, NumColors.InkSoft, Modifier.weight(1.1f))
-        }
-        Topic.entries.forEach { t ->
-            val s = p.stats(t)
-            Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                FunText("${t.symbol} ${t.title}", 14.sp, t.color, Modifier.weight(1.6f), align = TextAlign.Start, maxLines = 1)
-                FunText(if (s.lessonDone) "✓" else "–", 15.sp, NumColors.Ink, Modifier.weight(1f))
-                FunText("${s.gamesPlayed}", 15.sp, NumColors.Ink, Modifier.weight(1f))
-                FunText(if (s.attempts == 0) "–" else "${s.accuracyPercent}%", 15.sp, NumColors.Ink, Modifier.weight(1f))
-                FunText(s.tierName, 13.sp, NumColors.Ink, Modifier.weight(1.1f))
+        SettingRow("Unlock all levels", p.allUnlocked, onUnlockAll)
+        FunText(
+            "Normally a level opens when every game in the level before has 3 stars.",
+            12.sp, NumColors.InkSoft, align = TextAlign.Start, weight = FontWeight.Normal,
+        )
+        Gap(8.dp)
+        // Per-level, per-operation report
+        Level.entries.filter { lv -> p.levelUnlocked(lv) }.forEach { lv ->
+            FunText("${lv.emoji} ${lv.title}", 15.sp, NumColors.Ink, Modifier.fillMaxWidth(), align = TextAlign.Start)
+            Row(Modifier.fillMaxWidth()) {
+                FunText("Topic", 12.sp, NumColors.InkSoft, Modifier.weight(1.6f), align = TextAlign.Start)
+                FunText("Lessons", 12.sp, NumColors.InkSoft, Modifier.weight(1f))
+                FunText("Stars", 12.sp, NumColors.InkSoft, Modifier.weight(1f))
+                FunText("Right", 12.sp, NumColors.InkSoft, Modifier.weight(1f))
+                FunText("Puzzles", 12.sp, NumColors.InkSoft, Modifier.weight(1.1f))
             }
+            Topic.entries.forEach { t ->
+                val s = p.stats(t, lv)
+                val open = p.topicUnlocked(t, lv)
+                Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                    FunText("${t.symbol} ${t.title}", 13.sp, t.color, Modifier.weight(1.6f), align = TextAlign.Start, maxLines = 1)
+                    if (open) {
+                        FunText("${s.lessons.size}/3", 14.sp, NumColors.Ink, Modifier.weight(1f))
+                        FunText("${p.topicStars(t, lv)}/${Curriculum.maxStars(t, lv)}", 14.sp, NumColors.Ink, Modifier.weight(1f))
+                        FunText(if (s.attempts == 0) "–" else "${s.accuracyPercent}%", 14.sp, NumColors.Ink, Modifier.weight(1f))
+                        FunText(s.tierName, 12.sp, NumColors.Ink, Modifier.weight(1.1f))
+                    } else {
+                        FunText("🔒 locked", 13.sp, NumColors.InkSoft, Modifier.weight(4.1f))
+                    }
+                }
+            }
+            Gap(6.dp)
         }
         Gap(10.dp)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {

@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import com.numbloo.mathfun.AppState
 import com.numbloo.mathfun.model.GameResult
 import com.numbloo.mathfun.model.GameType
+import com.numbloo.mathfun.model.Level
 import com.numbloo.mathfun.model.Topic
 import com.numbloo.mathfun.ui.screens.ClosetScreen
 import com.numbloo.mathfun.ui.screens.GameScreen
@@ -37,10 +38,16 @@ sealed interface Screen {
     data object Profiles : Screen
     data object NewProfile : Screen
     data object Levels : Screen
-    data object TopicMap : Screen
-    data class TopicHub(val topic: Topic) : Screen
-    data class Lesson(val topic: Topic) : Screen
-    data class Play(val topic: Topic, val game: GameType, val guided: Boolean = false, val round: Long = System.nanoTime()) : Screen
+    data class TopicMap(val level: Level) : Screen
+    data class TopicHub(val topic: Topic, val level: Level) : Screen
+    data class Lesson(val topic: Topic, val level: Level, val index: Int) : Screen
+    data class Play(
+        val topic: Topic,
+        val level: Level,
+        val game: GameType,
+        val lessonId: String? = null,
+        val round: Long = System.nanoTime(),
+    ) : Screen
     data class Results(val result: GameResult) : Screen
     data object StickerBook : Screen
     data object Closet : Screen
@@ -121,16 +128,17 @@ fun NumblooApp(app: AppState) {
                     Screen.Levels -> LevelScreen(
                         app = app,
                         profile = profile!!,
-                        onBeginner = { nav.push(Screen.TopicMap) },
+                        onLevel = { l -> nav.push(Screen.TopicMap(l)) },
                         onStickers = { nav.push(Screen.StickerBook) },
                         onCloset = { nav.push(Screen.Closet) },
                         onSwitchPlayer = { app.hush(); app.select(null); nav.reset(Screen.Profiles) },
                     )
 
-                    Screen.TopicMap -> TopicMapScreen(
+                    is Screen.TopicMap -> TopicMapScreen(
                         app = app,
                         profile = profile!!,
-                        onTopic = { t -> nav.push(Screen.TopicHub(t)) },
+                        level = screen.level,
+                        onTopic = { t -> nav.push(Screen.TopicHub(t, screen.level)) },
                         onBack = { nav.pop() },
                     )
 
@@ -138,8 +146,9 @@ fun NumblooApp(app: AppState) {
                         app = app,
                         profile = profile!!,
                         topic = screen.topic,
-                        onLesson = { nav.push(Screen.Lesson(screen.topic)) },
-                        onGame = { g -> nav.push(Screen.Play(screen.topic, g)) },
+                        level = screen.level,
+                        onLesson = { i -> nav.push(Screen.Lesson(screen.topic, screen.level, i)) },
+                        onGame = { g -> nav.push(Screen.Play(screen.topic, screen.level, g)) },
                         onBack = { nav.pop() },
                     )
 
@@ -147,7 +156,9 @@ fun NumblooApp(app: AppState) {
                         app = app,
                         profile = profile!!,
                         topic = screen.topic,
-                        onPractice = { nav.replace(Screen.Play(screen.topic, GameType.QUIZ, guided = true)) },
+                        level = screen.level,
+                        lessonIndex = screen.index,
+                        onPractice = { id -> nav.replace(Screen.Play(screen.topic, screen.level, GameType.QUIZ, lessonId = id)) },
                         onBack = { nav.pop() },
                     )
 
@@ -155,8 +166,9 @@ fun NumblooApp(app: AppState) {
                         app = app,
                         profile = profile!!,
                         topic = screen.topic,
+                        level = screen.level,
                         game = screen.game,
-                        guided = screen.guided,
+                        lessonId = screen.lessonId,
                         onExit = { app.hush(); nav.pop() },
                         onFinished = { r: GameResult -> nav.replace(Screen.Results(r)) },
                     )
@@ -167,7 +179,7 @@ fun NumblooApp(app: AppState) {
                         result = screen.result,
                         onAgain = {
                             val r = screen.result
-                            nav.replace(Screen.Play(r.topic, r.game, guided = false))
+                            nav.replace(Screen.Play(r.topic, r.level, r.game))
                         },
                         onDone = { app.hush(); nav.pop() },
                     )

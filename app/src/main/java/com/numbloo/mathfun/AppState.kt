@@ -12,6 +12,7 @@ import com.numbloo.mathfun.data.ProfileStore
 import com.numbloo.mathfun.model.Closet
 import com.numbloo.mathfun.model.GameResult
 import com.numbloo.mathfun.model.Level
+import com.numbloo.mathfun.model.PipColors
 import com.numbloo.mathfun.model.GameType
 import com.numbloo.mathfun.model.Hat
 import com.numbloo.mathfun.model.Profile
@@ -82,15 +83,22 @@ class AppState(context: Context) {
         save()
     }
 
+    /** Clears stars, stickers, records and outfits. Keeps name, age and the unlock-all switch. */
     fun resetProgress(id: String) {
         update(id) {
-            it.copy(
-                totalStars = 0, stickers = emptyList(), topics = emptyMap(), goldWins = 0,
-                hatChoice = null, glasses = com.numbloo.mathfun.model.Glasses.NONE,
-                neck = com.numbloo.mathfun.model.Neck.NONE,
-                colorIndex = it.colorIndex % com.numbloo.mathfun.model.PipColors.FREE,
+            Profile(
+                id = it.id,
+                name = it.name,
+                age = it.age,
+                colorIndex = it.colorIndex % PipColors.FREE,
+                createdAt = it.createdAt,
+                allUnlocked = it.allUnlocked,
             )
         }
+    }
+
+    fun setAllUnlocked(id: String, on: Boolean) {
+        update(id) { it.copy(allUnlocked = on) }
     }
 
     fun setAge(id: String, age: Int) {
@@ -109,20 +117,22 @@ class AppState(context: Context) {
 
     private fun save() = store.saveProfiles(profiles.toList())
 
-    /** Saves a finished game and works out the rewards. */
+    /** Saves a finished game and works out the rewards. [lessonId] is set for lesson practice. */
     fun recordResult(
         profileId: String,
         topic: Topic,
+        level: Level,
         game: GameType,
-        guided: Boolean,
+        lessonId: String?,
         stars: Int,
         correctFirstTry: Int,
         total: Int,
     ): GameResult {
+        val guided = lessonId != null
         val i = profiles.indexOfFirst { it.id == profileId }
-        if (i < 0) return GameResult(topic, game, guided, stars, correctFirstTry, total, null, null, 0)
+        if (i < 0) return GameResult(topic, level, game, guided, stars, correctFirstTry, total, null, null, 0)
         val p = profiles[i]
-        val s = p.stats(topic)
+        val s = p.stats(topic, level)
 
         val newTier = when {
             guided -> s.tier
@@ -130,21 +140,20 @@ class AppState(context: Context) {
             stars <= 1 -> max(1, s.tier - 1)
             else -> s.tier
         }
-        val key = if (guided) "lesson" else game.id
-        val best = s.bestStars + (key to max(stars, s.bestStars[key] ?: 0))
+        val best = if (guided) s.bestStars else s.bestStars + (game.id to max(stars, s.bestStars[game.id] ?: 0))
         val newStats = s.copy(
             tier = newTier,
-            lessonDone = s.lessonDone || guided,
+            lessons = if (lessonId != null) s.lessons + lessonId else s.lessons,
             gamesPlayed = s.gamesPlayed + if (guided) 0 else 1,
             correct = s.correct + correctFirstTry,
             attempts = s.attempts + total,
             bestStars = best,
         )
 
-        // A sticker for finishing a lesson, or for 2+ stars in a game.
+        // A sticker (from this level's set) for finishing a lesson, or for 2+ stars in a game.
         val owned = p.stickers.toSet()
         val sticker = if (guided || stars >= 2) {
-            Stickers.forLevel(Level.BEGINNER).filter { it.id !in owned }.randomOrNull()
+            Stickers.forLevel(level).filter { it.id !in owned }.randomOrNull()
         } else null
 
         val oldHat = Hat.forStars(p.totalStars)
@@ -155,15 +164,21 @@ class AppState(context: Context) {
         val newGold = p.goldWins + if (!guided && stars >= 3) 1 else 0
         val unlocked = Closet.unlockedBetween(p.goldWins, newGold)
 
-        profiles[i] = p.withStats(topic, newStats).copy(
+        val updated = p.withStats(topic, level, newStats).copy(
             goldWins = newGold,
             totalStars = newTotal,
             stickers = if (sticker != null) p.stickers + sticker.id else p.stickers,
             lastPlayed = System.currentTimeMillis(),
         )
+        // Did this game open the next level of this operation?
+        val next = level.next
+        val levelUnlocked = if (next != null && !p.topicUnlocked(topic, next) && updated.topicUnlocked(topic, next)) next else null
+
+        profiles[i] = updated
         save()
         return GameResult(
             topic = topic,
+            level = level,
             game = game,
             guided = guided,
             stars = stars,
@@ -174,6 +189,7 @@ class AppState(context: Context) {
             tierChange = newTier - s.tier,
             closetOpened = p.goldWins == 0 && newGold >= 1,
             unlocked = unlocked,
+            levelUnlocked = levelUnlocked,
         )
     }
 
