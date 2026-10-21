@@ -7,22 +7,23 @@ A playful Android math app for kids aged 4–10. Pip, a hungry, goofy blob, expl
 * **Sound effects** are generated in code, so the app ships no audio files.
 * **Progress stays on the phone.**
 
-## What's inside (v0.2)
+## What's inside (v0.3)
 
 | Area | Details |
 |---|---|
 | Players | Several profiles. Each has its own name, age, Pip colour, stars, stickers and per-topic records. |
-| Levels | Beginner (playable). Intermediate and Pro are shown as "coming soon". |
+| Levels | Beginner, Intermediate and Pro for each operation. A level opens when every game and the quiz in the level before has 3 stars. Grown-ups can switch on "Unlock all levels". Intermediate: numbers to 50 and all times tables. Pro: two-digit numbers, carrying, borrowing, up to 200. |
 | Topics | Addition, Subtraction, Multiplication, Division |
-| Each topic | A 6-card lesson ("Learn with Pip"), then 3 guided tries, then 5 games and a quiz |
-| Games (+) | Feed Pip, Balloon Pop, Domino Dots, Snail Race, Mystery Box |
-| Games (−) | Frog Hop, Sneaky Squirrel, Bubble Pop, Tower Compare, Magic Hat |
-| Games (×) | Cookie Plates, Kangaroo Jumps, Flower Garden, Ladybug Spots, Times Machine |
-| Games (÷) | Pizza Party, Egg Packers, Monster Munch, Cupcake Trays, Divide-o-Matic |
+| Each operation, each level | 3 short lessons (36 in total), each followed by 3 guided tries, then the games and a quiz |
+| Games (+) | Feed Pip, Balloon Pop, Domino Dots, Snail Race, Mystery Box, Sum Snap, Silly Sums |
+| Games (−) | Frog Hop, Sneaky Squirrel, Bubble Pop, Tower Compare, Magic Hat, Difference Detective, Silly Take-aways |
+| Games (×) | Cookie Plates, Kangaroo Jumps, Flower Garden, Ladybug Spots, Times Machine, Times Twins, Silly Times |
+| Games (÷) | Pizza Party, Egg Packers, Monster Munch, Cupcake Trays, Divide-o-Matic, Share Pairs, Silly Shares |
+| Higher levels | Use the games that work with big numbers: Balloon Pop, number lines, Mystery Box, Magic Hat, Kangaroo, the machines, Snap and Silly Pip |
 | Every topic | Snack Quiz |
 | Confidence features | Small numbers first. Difficulty adjusts automatically (Easy / Medium / Tricky). Wrong answers get a funny "hic!" instead of a penalty. A visual hint appears after one miss, and the right answer wiggles after two. Every game gives at least 1 star. |
-| Rewards | Stars, plus a sticker book with 24 stickers per level (Beginner, Intermediate, Pro). Hats unlock with stars (party hat, crown, wizard hat, propeller cap). |
-| Pip's Closet | Opens after the first 3-star game. More 3-star wins unlock colours (Mint, Ruby, Gold, Midnight), glasses (shades, specs, star glasses) and neckwear (bow tie, scarf). Hats can be picked here too. |
+| Rewards | Stars, plus a sticker book with 24 stickers per level (Beginner, Intermediate, Pro); stickers come from the level being played. Hats unlock with stars (party hat, crown, wizard hat, propeller cap). |
+| Pip's Closet | Opens after the first 3-star game. Flags (Saudi Arabia, UAE, Kuwait, Qatar, Bahrain, Oman, Philippines, Portugal, England, Spain, Brazil) unlock right away. More 3-star wins unlock hair, job outfits (chef, doctor, firefighter, builder, pilot, astronaut), eyes, mouths, colours, glasses and neckwear. Hats earned with stars can be picked too. |
 | Grown-ups area | Protected by a parent gate. Turn voice and sounds on or off, see accuracy per topic, change age, reset or delete a player. |
 
 ## Get the APK from GitHub (no Android Studio needed)
@@ -57,5 +58,5 @@ app/src/main/java/com/numbloo/mathfun/
   audio/Speaker.kt, SoundFx.kt       offline voice + synthesised sounds
   ui/components/                     Pip (drawn in code), buttons, confetti, visuals
   ui/screens/                        players, levels, topic map, lessons, results, stickers, closet, grown-ups
-  ui/games/                          the 21 mini-games
+  ui/games/                          the mini-games (29 game types)
 ```
