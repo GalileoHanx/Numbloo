@@ -19,6 +19,7 @@ import com.numbloo.mathfun.AppState
 import com.numbloo.mathfun.model.GameResult
 import com.numbloo.mathfun.model.GameType
 import com.numbloo.mathfun.model.Topic
+import com.numbloo.mathfun.ui.screens.ClosetScreen
 import com.numbloo.mathfun.ui.screens.GameScreen
 import com.numbloo.mathfun.ui.screens.LessonScreen
 import com.numbloo.mathfun.ui.screens.LevelScreen
@@ -42,6 +43,7 @@ sealed interface Screen {
     data class Play(val topic: Topic, val game: GameType, val guided: Boolean = false, val round: Long = System.nanoTime()) : Screen
     data class Results(val result: GameResult) : Screen
     data object StickerBook : Screen
+    data object Closet : Screen
     data object ParentGate : Screen
     data object Parents : Screen
 }
@@ -121,6 +123,7 @@ fun NumblooApp(app: AppState) {
                         profile = profile!!,
                         onBeginner = { nav.push(Screen.TopicMap) },
                         onStickers = { nav.push(Screen.StickerBook) },
+                        onCloset = { nav.push(Screen.Closet) },
                         onSwitchPlayer = { app.hush(); app.select(null); nav.reset(Screen.Profiles) },
                     )
 
@@ -170,6 +173,12 @@ fun NumblooApp(app: AppState) {
                     )
 
                     Screen.StickerBook -> StickerBookScreen(
+                        app = app,
+                        profile = profile!!,
+                        onBack = { nav.pop() },
+                    )
+
+                    Screen.Closet -> ClosetScreen(
                         app = app,
                         profile = profile!!,
                         onBack = { nav.pop() },

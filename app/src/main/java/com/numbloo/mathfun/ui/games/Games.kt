@@ -100,6 +100,8 @@ fun FeedPipGame(q: Question, attempts: Int, ctx: GameCtx, onAnswer: AnswerFn) {
                 mood = if (chewing) PipMood.CHEW else PipMood.WOW,
                 color = ctx.pipColor,
                 hat = ctx.hat,
+                glasses = ctx.glasses,
+                neck = ctx.neck,
             )
             Spacer(Modifier.width(16.dp))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

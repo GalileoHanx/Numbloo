@@ -29,7 +29,10 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.numbloo.mathfun.model.Glasses
 import com.numbloo.mathfun.model.Hat
+import com.numbloo.mathfun.model.Neck
+import com.numbloo.mathfun.model.Profile
 import com.numbloo.mathfun.ui.theme.NumColors
 import com.numbloo.mathfun.ui.theme.darken
 import com.numbloo.mathfun.ui.theme.lighten
@@ -48,6 +51,8 @@ fun Pip(
     mood: PipMood = PipMood.HAPPY,
     color: Color = NumColors.PipPalette[0],
     hat: Hat = Hat.NONE,
+    glasses: Glasses = Glasses.NONE,
+    neck: Neck = Neck.NONE,
 ) {
     val inf = rememberInfiniteTransition(label = "pip")
     val bounce by inf.animateFloat(
@@ -88,7 +93,7 @@ fun Pip(
 
     Box(modifier) {
         Canvas(Modifier.fillMaxSize()) {
-            drawPip(mood, color, hat, bounce, blink, fast, spin)
+            drawPip(mood, color, hat, glasses, neck, bounce, blink, fast, spin)
         }
         if (mood == PipMood.OOPS) {
             Text(
@@ -104,10 +109,18 @@ fun Pip(
     }
 }
 
+/** Pip dressed the way this player chose. */
+@Composable
+fun ProfilePip(p: Profile, modifier: Modifier = Modifier, mood: PipMood = PipMood.HAPPY) {
+    Pip(modifier, mood, NumColors.pip(p.colorIndex), p.hat, p.glasses, p.neck)
+}
+
 private fun DrawScope.drawPip(
     mood: PipMood,
     color: Color,
     hat: Hat,
+    glasses: Glasses,
+    neck: Neck,
     bounce: Float,
     blink: Float,
     fast: Float,
@@ -228,7 +241,96 @@ private fun DrawScope.drawPip(
         }
     }
 
+    drawNeck(neck, cx, cy, rx, ry)
+    drawGlasses(glasses, cx, eyeY, rx * 0.36f, er)
     drawHat(hat, cx, cy - ry, rx, ry, h, spin)
+}
+
+private fun starPath(c: Offset, outer: Float, inner: Float): Path = Path().apply {
+    for (k in 0 until 10) {
+        val r = if (k % 2 == 0) outer else inner
+        val a = Math.toRadians((-90.0 + k * 36.0))
+        val x = c.x + r * cos(a).toFloat()
+        val y = c.y + r * kotlin.math.sin(a).toFloat()
+        if (k == 0) moveTo(x, y) else lineTo(x, y)
+    }
+    close()
+}
+
+private fun DrawScope.drawGlasses(g: Glasses, cx: Float, eyeY: Float, dx: Float, er: Float) {
+    if (g == Glasses.NONE) return
+    val ink = NumColors.Ink
+    val bridgeY = eyeY - er * 0.2f
+    when (g) {
+        Glasses.SHADES -> {
+            for (s in listOf(-1f, 1f)) {
+                val ex = cx + s * dx
+                drawOval(Color(0xEE1E1B2E), Offset(ex - er * 1.15f, eyeY - er * 0.85f), Size(er * 2.3f, er * 1.7f))
+                drawLine(Color.White.copy(alpha = 0.5f), Offset(ex - er * 0.6f, eyeY - er * 0.35f), Offset(ex - er * 0.15f, eyeY - er * 0.6f), strokeWidth = er * 0.18f, cap = StrokeCap.Round)
+            }
+            drawLine(Color(0xFF1E1B2E), Offset(cx - dx + er, bridgeY), Offset(cx + dx - er, bridgeY), strokeWidth = er * 0.25f)
+        }
+        Glasses.SPECS -> {
+            for (s in listOf(-1f, 1f)) {
+                drawCircle(ink, radius = er * 1.2f, center = Offset(cx + s * dx, eyeY), style = Stroke(width = er * 0.25f))
+            }
+            drawLine(ink, Offset(cx - dx + er * 1.2f, bridgeY), Offset(cx + dx - er * 1.2f, bridgeY), strokeWidth = er * 0.25f)
+        }
+        Glasses.STARS -> {
+            for (s in listOf(-1f, 1f)) {
+                val c = Offset(cx + s * dx, eyeY)
+                val p = starPath(c, er * 1.5f, er * 0.75f)
+                drawPath(p, Color(0xCCFF6FA8))
+                drawPath(p, Color(0xFFC2185B), style = Stroke(width = er * 0.15f, join = StrokeJoin.Round))
+            }
+            drawLine(Color(0xFFC2185B), Offset(cx - dx + er * 0.9f, bridgeY), Offset(cx + dx - er * 0.9f, bridgeY), strokeWidth = er * 0.2f)
+        }
+        Glasses.NONE -> {}
+    }
+}
+
+private fun DrawScope.drawNeck(n: Neck, cx: Float, cy: Float, rx: Float, ry: Float) {
+    val y = cy + ry * 0.66f
+    when (n) {
+        Neck.BOW_TIE -> {
+            val w = rx * 0.26f
+            val hgt = ry * 0.2f
+            val left = Path().apply {
+                moveTo(cx, y)
+                lineTo(cx - w, y - hgt)
+                lineTo(cx - w, y + hgt)
+                close()
+            }
+            val right = Path().apply {
+                moveTo(cx, y)
+                lineTo(cx + w, y - hgt)
+                lineTo(cx + w, y + hgt)
+                close()
+            }
+            val red = Color(0xFFE53958)
+            drawPath(left, red)
+            drawPath(right, red)
+            drawPath(left, red.darken(0.35f), style = Stroke(width = rx * 0.025f, join = StrokeJoin.Round))
+            drawPath(right, red.darken(0.35f), style = Stroke(width = rx * 0.025f, join = StrokeJoin.Round))
+            drawCircle(red.darken(0.2f), radius = hgt * 0.45f, center = Offset(cx, y))
+        }
+        Neck.SCARF -> {
+            val band = Color(0xFF4FC3F7)
+            drawArc(
+                band, startAngle = 20f, sweepAngle = 140f, useCenter = false,
+                topLeft = Offset(cx - rx * 0.92f, cy - ry * 0.25f),
+                size = Size(rx * 1.84f, ry * 1.0f),
+                style = Stroke(width = ry * 0.2f, cap = StrokeCap.Round),
+            )
+            // Hanging end with stripes
+            val tx = cx + rx * 0.38f
+            val ty = cy + ry * 0.62f
+            drawRect(band, Offset(tx, ty), Size(rx * 0.2f, ry * 0.42f))
+            drawRect(Color.White.copy(alpha = 0.7f), Offset(tx, ty + ry * 0.12f), Size(rx * 0.2f, ry * 0.06f))
+            drawRect(Color.White.copy(alpha = 0.7f), Offset(tx, ty + ry * 0.26f), Size(rx * 0.2f, ry * 0.06f))
+        }
+        Neck.NONE -> {}
+    }
 }
 
 private fun DrawScope.drawHat(hat: Hat, cx: Float, top: Float, rx: Float, ry: Float, h: Float, spin: Float) {

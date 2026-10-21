@@ -42,14 +42,16 @@ class Speaker(context: Context) : TextToSpeech.OnInitListener {
         }
     }
 
-    fun speak(text: String) {
+    /** [queue] = true waits for the current sentence to finish instead of cutting it off. */
+    fun speak(text: String, queue: Boolean = false) {
         val engine = tts
         if (engine == null || !ready) {
             pending = text
             return
         }
         try {
-            engine.speak(clean(text), TextToSpeech.QUEUE_FLUSH, null, "numbloo-" + System.nanoTime())
+            val mode = if (queue) TextToSpeech.QUEUE_ADD else TextToSpeech.QUEUE_FLUSH
+            engine.speak(clean(text), mode, null, "numbloo-" + System.nanoTime())
         } catch (e: Exception) {
             // ignore, voice is a bonus
         }

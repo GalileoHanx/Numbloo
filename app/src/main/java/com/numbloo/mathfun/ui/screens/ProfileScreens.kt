@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.numbloo.mathfun.AppState
 import com.numbloo.mathfun.audio.Sfx
+import com.numbloo.mathfun.model.PipColors
 import com.numbloo.mathfun.model.Profile
 import com.numbloo.mathfun.ui.components.BouncyBox
 import com.numbloo.mathfun.ui.components.BouncyButton
@@ -48,6 +49,7 @@ import com.numbloo.mathfun.ui.components.FunText
 import com.numbloo.mathfun.ui.components.Gap
 import com.numbloo.mathfun.ui.components.Pip
 import com.numbloo.mathfun.ui.components.PipMood
+import com.numbloo.mathfun.ui.components.ProfilePip
 import com.numbloo.mathfun.ui.components.SpeechBubble
 import com.numbloo.mathfun.ui.components.TopBar
 import com.numbloo.mathfun.ui.theme.NumColors
@@ -120,7 +122,7 @@ private fun ProfileCard(p: Profile, onClick: () -> Unit) {
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Pip(Modifier.size(72.dp), mood = PipMood.HAPPY, color = NumColors.pip(p.colorIndex), hat = p.hat)
+            ProfilePip(p, Modifier.size(72.dp))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 FunText(p.name, 24.sp, NumColors.Ink, maxLines = 1)
@@ -139,7 +141,7 @@ fun NewProfileScreen(
 ) {
     var name by remember { mutableStateOf("") }
     var age by remember { mutableIntStateOf(6) }
-    var color by remember { mutableIntStateOf(app.profiles.size % NumColors.PipPalette.size) }
+    var color by remember { mutableIntStateOf(app.profiles.size % PipColors.FREE) }
 
     LaunchedEffect(Unit) { app.say("What's your name? And how old are you?") }
 
@@ -204,7 +206,7 @@ fun NewProfileScreen(
             FunText("Pick Pip's colour", 20.sp, align = TextAlign.Start, modifier = Modifier.fillMaxWidth())
             Gap(8.dp)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                NumColors.PipPalette.forEachIndexed { i, c ->
+                NumColors.PipPalette.take(PipColors.FREE).forEachIndexed { i, c ->
                     Box(
                         Modifier
                             .size(46.dp)

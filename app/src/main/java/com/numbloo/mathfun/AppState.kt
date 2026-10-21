@@ -9,7 +9,9 @@ import com.numbloo.mathfun.audio.Sfx
 import com.numbloo.mathfun.audio.SoundFx
 import com.numbloo.mathfun.audio.Speaker
 import com.numbloo.mathfun.data.ProfileStore
+import com.numbloo.mathfun.model.Closet
 import com.numbloo.mathfun.model.GameResult
+import com.numbloo.mathfun.model.Level
 import com.numbloo.mathfun.model.GameType
 import com.numbloo.mathfun.model.Hat
 import com.numbloo.mathfun.model.Profile
@@ -40,8 +42,9 @@ class AppState(context: Context) {
         currentId = id
     }
 
-    fun say(text: String) {
-        if (voiceOn) speaker.speak(text)
+    /** Pip speaks. [queue] lets the current sentence finish first. */
+    fun say(text: String, queue: Boolean = false) {
+        if (voiceOn) speaker.speak(text, queue)
     }
 
     fun hush() = speaker.stop()
@@ -80,12 +83,21 @@ class AppState(context: Context) {
     }
 
     fun resetProgress(id: String) {
-        update(id) { it.copy(totalStars = 0, stickers = emptyList(), topics = emptyMap()) }
+        update(id) {
+            it.copy(
+                totalStars = 0, stickers = emptyList(), topics = emptyMap(), goldWins = 0,
+                hatChoice = null, glasses = com.numbloo.mathfun.model.Glasses.NONE,
+                neck = com.numbloo.mathfun.model.Neck.NONE,
+                colorIndex = it.colorIndex % com.numbloo.mathfun.model.PipColors.FREE,
+            )
+        }
     }
 
     fun setAge(id: String, age: Int) {
         update(id) { it.copy(age = age.coerceIn(4, 10)) }
     }
+
+    fun updateProfile(id: String, change: (Profile) -> Profile) = update(id, change)
 
     private fun update(id: String, change: (Profile) -> Profile) {
         val i = profiles.indexOfFirst { it.id == id }
@@ -132,14 +144,19 @@ class AppState(context: Context) {
         // A sticker for finishing a lesson, or for 2+ stars in a game.
         val owned = p.stickers.toSet()
         val sticker = if (guided || stars >= 2) {
-            Stickers.all.filter { it.id !in owned }.randomOrNull()
+            Stickers.forLevel(Level.BEGINNER).filter { it.id !in owned }.randomOrNull()
         } else null
 
         val oldHat = Hat.forStars(p.totalStars)
         val newTotal = p.totalStars + stars
         val newHat = Hat.forStars(newTotal).takeIf { it != oldHat }
 
+        // 3 stars in a real game (not lesson practice) counts as a gold win for Pip's Closet.
+        val newGold = p.goldWins + if (!guided && stars >= 3) 1 else 0
+        val unlocked = Closet.unlockedBetween(p.goldWins, newGold)
+
         profiles[i] = p.withStats(topic, newStats).copy(
+            goldWins = newGold,
             totalStars = newTotal,
             stickers = if (sticker != null) p.stickers + sticker.id else p.stickers,
             lastPlayed = System.currentTimeMillis(),
@@ -155,6 +172,8 @@ class AppState(context: Context) {
             sticker = sticker,
             newHat = newHat,
             tierChange = newTier - s.tier,
+            closetOpened = p.goldWins == 0 && newGold >= 1,
+            unlocked = unlocked,
         )
     }
 

@@ -16,6 +16,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import com.numbloo.mathfun.AppState
 import com.numbloo.mathfun.audio.Sfx
 import com.numbloo.mathfun.model.GameResult
+import com.numbloo.mathfun.model.Level
 import com.numbloo.mathfun.model.Profile
 import com.numbloo.mathfun.model.Stickers
 import com.numbloo.mathfun.ui.components.BouncyButton
@@ -36,6 +41,7 @@ import com.numbloo.mathfun.ui.components.Gap
 import com.numbloo.mathfun.ui.components.Panel
 import com.numbloo.mathfun.ui.components.Pip
 import com.numbloo.mathfun.ui.components.PipMood
+import com.numbloo.mathfun.ui.components.ProfilePip
 import com.numbloo.mathfun.ui.components.PopIn
 import com.numbloo.mathfun.ui.components.StarsRow
 import com.numbloo.mathfun.ui.components.TopBar
@@ -59,8 +65,10 @@ fun ResultsScreen(
         val extra = buildString {
             if (result.sticker != null) append(" You got a new sticker: ${result.sticker.name}!")
             if (result.newHat != null) append(" And Pip got a ${result.newHat.label}!")
+            if (result.closetOpened) append(" Three stars! Pip's closet is now open!")
+            else if (result.unlocked.isNotEmpty()) append(" New clothes for Pip!")
         }
-        app.say(headline + extra)
+        app.say(headline + extra, queue = true)
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -73,12 +81,7 @@ fun ResultsScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Gap(10.dp)
-            Pip(
-                Modifier.size(180.dp),
-                mood = PipMood.HAPPY,
-                color = NumColors.pip(profile.colorIndex),
-                hat = profile.hat,
-            )
+            ProfilePip(profile, Modifier.size(180.dp))
             FunText(headline, 26.sp, NumColors.Ink)
             Gap(8.dp)
             PopIn(300) { StarsRow(result.stars, size = 56.sp) }
@@ -96,6 +99,24 @@ fun ResultsScreen(
                         FunText("New sticker!", 18.sp, result.topic.color)
                         Text(result.sticker.emoji, fontSize = 64.sp)
                         FunText(result.sticker.name, 20.sp)
+                    }
+                }
+                Gap(12.dp)
+            }
+            if (result.closetOpened) {
+                PopIn(900) {
+                    Panel(Modifier.fillMaxWidth(), color = NumColors.Grass.copy(alpha = 0.25f)) {
+                        FunText("👕 Pip's Closet is open!", 20.sp)
+                        FunText("Three stars! Now you can dress up Pip from the level menu.", 15.sp, NumColors.InkSoft)
+                    }
+                }
+                Gap(12.dp)
+            }
+            if (result.unlocked.isNotEmpty()) {
+                PopIn(1100) {
+                    Panel(Modifier.fillMaxWidth(), color = Color(0xFFB388FF).copy(alpha = 0.25f)) {
+                        FunText("✨ New in Pip's Closet", 18.sp)
+                        FunText(result.unlocked.joinToString(", "), 16.sp, NumColors.InkSoft)
                     }
                 }
                 Gap(12.dp)
@@ -138,15 +159,41 @@ fun ResultsScreen(
 
 @Composable
 fun StickerBookScreen(app: AppState, profile: Profile, onBack: () -> Unit) {
-    LaunchedEffect(Unit) {
-        app.say("You have ${profile.stickers.size} stickers! Win more by playing games.")
-    }
     val owned = profile.stickers.toSet()
+    var level by remember { mutableStateOf(Level.BEGINNER) }
+    val stickers = Stickers.forLevel(level)
+    val have = stickers.count { it.id in owned }
+    LaunchedEffect(Unit) {
+        app.say("You have $have ${level.title} stickers! Win more by playing games.")
+    }
     Column(Modifier.fillMaxSize()) {
         TopBar("Sticker Book", onBack = onBack)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Level.entries.forEach { l ->
+                val selected = l == level
+                BouncyButton(
+                    text = "${l.emoji} ${l.title}",
+                    color = if (selected) NumColors.Ink else Color.White,
+                    textColor = if (selected) Color.White else NumColors.Ink,
+                    fontSize = 13.sp,
+                    height = 50.dp,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    level = l
+                    app.play(Sfx.TAP)
+                }
+            }
+        }
+        Gap(8.dp)
         FunText(
-            "${owned.size} / ${Stickers.all.size} collected",
-            18.sp,
+            if (level.unlocked) "$have / ${stickers.size} collected"
+            else "🔒 Unlocks when ${level.title} level opens!",
+            17.sp,
             NumColors.InkSoft,
             Modifier.fillMaxWidth(),
         )
@@ -157,21 +204,21 @@ fun StickerBookScreen(app: AppState, profile: Profile, onBack: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp),
         ) {
-            Stickers.all.chunked(4).forEach { row ->
+            stickers.chunked(4).forEach { row ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     row.forEach { s ->
-                        val have = s.id in owned
+                        val got = s.id in owned
                         Column(
                             Modifier
                                 .weight(1f)
                                 .aspectRatio(0.85f)
                                 .clip(RoundedCornerShape(18.dp))
-                                .background(if (have) Color.White else NumColors.Locked.copy(alpha = 0.5f)),
+                                .background(if (got) Color.White else NumColors.Locked.copy(alpha = 0.5f)),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center,
                         ) {
-                            Text(if (have) s.emoji else "❓", fontSize = 36.sp)
-                            FunText(if (have) s.name else "???", 12.sp, NumColors.InkSoft, maxLines = 1)
+                            Text(if (got) s.emoji else if (level.unlocked) "❓" else "🔒", fontSize = 36.sp)
+                            FunText(if (got) s.name else "???", 12.sp, NumColors.InkSoft, maxLines = 1)
                         }
                     }
                     repeat(4 - row.size) { Box(Modifier.weight(1f)) }

@@ -1,7 +1,10 @@
 package com.numbloo.mathfun.data
 
 import android.content.Context
+import com.numbloo.mathfun.model.Glasses
+import com.numbloo.mathfun.model.Neck
 import com.numbloo.mathfun.model.Profile
+import com.numbloo.mathfun.model.Stickers
 import com.numbloo.mathfun.model.TopicStats
 import org.json.JSONArray
 import org.json.JSONObject
@@ -60,6 +63,10 @@ class ProfileStore(context: Context) {
         o.put("topics", topics)
         o.put("created", p.createdAt)
         o.put("last", p.lastPlayed)
+        o.put("gold", p.goldWins)
+        if (p.hatChoice != null) o.put("hatChoice", p.hatChoice)
+        o.put("glasses", p.glasses.name)
+        o.put("neck", p.neck.name)
         return o
     }
 
@@ -81,7 +88,12 @@ class ProfileStore(context: Context) {
         if (id.isEmpty()) return null
         val stickers = ArrayList<String>()
         val st = o.optJSONArray("stickers")
-        if (st != null) for (i in 0 until st.length()) stickers.add(st.optString(i))
+        if (st != null) {
+            for (i in 0 until st.length()) {
+                val sid = Stickers.migrateId(st.optString(i))
+                if (sid.isNotEmpty() && sid !in stickers) stickers.add(sid)
+            }
+        }
         val topics = HashMap<String, TopicStats>()
         val t = o.optJSONObject("topics")
         if (t != null) {
@@ -102,6 +114,10 @@ class ProfileStore(context: Context) {
             topics = topics,
             createdAt = o.optLong("created", System.currentTimeMillis()),
             lastPlayed = o.optLong("last", System.currentTimeMillis()),
+            goldWins = o.optInt("gold", 0),
+            hatChoice = if (o.has("hatChoice")) o.optString("hatChoice") else null,
+            glasses = Glasses.entries.firstOrNull { it.name == o.optString("glasses") } ?: Glasses.NONE,
+            neck = Neck.entries.firstOrNull { it.name == o.optString("neck") } ?: Neck.NONE,
         )
     }
 

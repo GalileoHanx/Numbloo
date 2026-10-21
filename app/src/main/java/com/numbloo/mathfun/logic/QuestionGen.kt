@@ -47,6 +47,18 @@ object QuestionGen {
             GameType.KANGAROO_JUMPS -> skip(t, n)
             GameType.PIZZA_SHARE -> div(t, n, maxDivisor = 4, maxTotal = 12)
             GameType.PACK_BOXES -> div(t, n, maxDivisor = 5, maxTotal = 15)
+            GameType.DOMINO_DOTS -> domino(t, n)
+            GameType.SNAIL_RACE -> add(t, n, maxSum = 10)
+            GameType.MYSTERY_BOX -> hideB(add(t, n, maxSum = 10), n)
+            GameType.BUBBLE_POP -> sub(t, n, maxStart = 12)
+            GameType.TOWER_COMPARE -> sub(t, n, maxStart = 10)
+            GameType.MAGIC_HAT -> hideB(sub(t, n, maxStart = 10), n)
+            GameType.FLOWER_GARDEN -> mul(t, n, maxGroups = 5, maxPer = 5)
+            GameType.LADYBUG_SPOTS -> mul(t, n, maxGroups = 5, maxPer = 5)
+            GameType.TIMES_MACHINE -> mul(t, n, maxGroups = 5, maxPer = 10)
+            GameType.MONSTER_MUNCH -> div(t, n, maxDivisor = 5, maxTotal = 15)
+            GameType.CUPCAKE_TRAYS -> div(t, n, maxDivisor = 5, maxTotal = 20)
+            GameType.DIVIDE_MACHINE -> div(t, n, maxDivisor = 5, maxTotal = 30)
             GameType.QUIZ -> when (topic) {
                 Topic.ADD -> add(t, n, maxSum = 20)
                 Topic.SUB -> sub(t, n, maxStart = 20)
@@ -65,6 +77,37 @@ object QuestionGen {
             tries++
         }
         return q
+    }
+
+    /** Same numbers, but the hidden one is b ("3 + ? = 7", "7 − ? = 4"). */
+    private fun hideB(q: Question, n: Int): Question {
+        val shown = if (q.topic == Topic.ADD) q.a + q.b else q.answer
+        return q.copy(
+            answer = q.b,
+            choices = choices(q.b, n, listOf(q.b + 1, q.b - 1, q.b + 2, q.b - 2, q.a, shown)),
+        )
+    }
+
+    /** Two domino halves, each 1..6 dots. */
+    private fun domino(t: Int, n: Int): Question {
+        val (lo, hi) = when (t) {
+            1 -> 2 to 5
+            2 -> 4 to 9
+            else -> 7 to 12
+        }
+        var a = 1
+        var b = 1
+        var tries = 0
+        do {
+            a = rnd.nextInt(1, 7)
+            b = rnd.nextInt(1, 7)
+            tries++
+        } while ((a + b < lo || a + b > hi) && tries < 200)
+        val total = a + b
+        return Question(
+            Topic.ADD, a, b, total,
+            choices(total, n, listOf(total + 1, total - 1, total + 2, total - 2, max(a, b))),
+        )
     }
 
     private fun add(t: Int, n: Int, maxSum: Int): Question {

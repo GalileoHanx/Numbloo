@@ -43,6 +43,7 @@ import com.numbloo.mathfun.ui.components.MiniNumberLine
 import com.numbloo.mathfun.ui.components.Panel
 import com.numbloo.mathfun.ui.components.Pip
 import com.numbloo.mathfun.ui.components.PipMood
+import com.numbloo.mathfun.ui.components.ProfilePip
 import com.numbloo.mathfun.ui.components.PopIn
 import com.numbloo.mathfun.ui.components.PoppingItems
 import com.numbloo.mathfun.ui.components.ProgressDots
@@ -220,7 +221,7 @@ fun LessonScreen(
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Pip(Modifier.size(96.dp), mood = card.mood, color = NumColors.pip(profile.colorIndex), hat = profile.hat)
+                ProfilePip(profile, Modifier.size(96.dp), mood = card.mood)
                 key(index) {
                     PopIn(modifier = Modifier.weight(1f)) {
                         SpeechBubble(card.text, Modifier.fillMaxWidth(), size = 17.sp)

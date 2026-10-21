@@ -29,7 +29,9 @@ import com.numbloo.mathfun.logic.Question
 import com.numbloo.mathfun.logic.QuestionGen
 import com.numbloo.mathfun.model.GameResult
 import com.numbloo.mathfun.model.GameType
+import com.numbloo.mathfun.model.Glasses
 import com.numbloo.mathfun.model.Hat
+import com.numbloo.mathfun.model.Neck
 import com.numbloo.mathfun.model.Profile
 import com.numbloo.mathfun.model.Quips
 import com.numbloo.mathfun.model.Topic
@@ -41,6 +43,17 @@ import com.numbloo.mathfun.ui.components.ProgressDots
 import com.numbloo.mathfun.ui.components.RoundButton
 import com.numbloo.mathfun.ui.components.SpeechBubble
 import com.numbloo.mathfun.ui.games.BalloonPopGame
+import com.numbloo.mathfun.ui.games.BubblePopGame
+import com.numbloo.mathfun.ui.games.CupcakeTraysGame
+import com.numbloo.mathfun.ui.games.DominoDotsGame
+import com.numbloo.mathfun.ui.games.FlowerGardenGame
+import com.numbloo.mathfun.ui.games.LadybugSpotsGame
+import com.numbloo.mathfun.ui.games.MagicHatGame
+import com.numbloo.mathfun.ui.games.MonsterMunchGame
+import com.numbloo.mathfun.ui.games.MysteryBoxGame
+import com.numbloo.mathfun.ui.games.NumberMachineGame
+import com.numbloo.mathfun.ui.games.SnailRaceGame
+import com.numbloo.mathfun.ui.games.TowerCompareGame
 import com.numbloo.mathfun.ui.games.CookiePlatesGame
 import com.numbloo.mathfun.ui.games.FeedPipGame
 import com.numbloo.mathfun.ui.games.FrogHopGame
@@ -62,9 +75,11 @@ class GameCtx(
     val pipColor: Color,
     val hat: Hat,
     val guided: Boolean,
+    val glasses: Glasses = Glasses.NONE,
+    val neck: Neck = Neck.NONE,
 ) {
     fun sfx(s: Sfx) = app.play(s)
-    fun say(text: String) = app.say(text)
+    fun say(text: String, queue: Boolean = false) = app.say(text, queue)
 }
 
 /** Called by a game when the child answers. [line] lets a game say something special. */
@@ -79,6 +94,18 @@ fun instructionFor(game: GameType, q: Question): String = when (game) {
     GameType.KANGAROO_JUMPS -> "Kangaroo jumps ${q.step} at a time! Which number is missing?"
     GameType.PIZZA_SHARE -> "Share ${q.a} pizza slices with ${q.b} friends. Tap Deal!"
     GameType.PACK_BOXES -> "${q.a} eggs. Each box holds ${q.b}. Tap Pack!"
+    GameType.DOMINO_DOTS -> "How many dots are on the domino altogether?"
+    GameType.SNAIL_RACE -> "Snail is on ${q.a}. He crawls forward ${q.b}. Tap where he stops!"
+    GameType.MYSTERY_BOX -> "Pip had ${q.a} apples. Now he has ${q.a + q.b}. How many were in the mystery box?"
+    GameType.BUBBLE_POP -> "Pop ${q.b} bubbles! Then count what's left."
+    GameType.TOWER_COMPARE -> "How many more blocks does the tall tower have?"
+    GameType.MAGIC_HAT -> "There were ${q.a} bunnies. Watch the magic hat! How many hide?"
+    GameType.FLOWER_GARDEN -> "Tap each row to make the flowers bloom!"
+    GameType.LADYBUG_SPOTS -> "${q.a} ladybugs with ${q.b} spots each. How many spots in all?"
+    GameType.TIMES_MACHINE -> "Put ${q.a} into the times ${q.b} machine. Crank it!"
+    GameType.MONSTER_MUNCH -> "Gloop eats ${q.b} cookies in one bite. Tap Gloop to munch!"
+    GameType.CUPCAKE_TRAYS -> "${q.a} cupcakes, ${q.b} on each tray. How many trays?"
+    GameType.DIVIDE_MACHINE -> "Put ${q.a} into the divide by ${q.b} machine. Crank it!"
     GameType.QUIZ -> "What is ${q.spokenEquation}?"
 }
 
@@ -99,7 +126,10 @@ fun GameScreen(
     }
     val startTier = remember { if (guided) 1 else profile.stats(topic).tier }
     val ctx = remember {
-        GameCtx(app, topic.color, profile.age, NumColors.pip(profile.colorIndex), profile.hat, guided)
+        GameCtx(
+            app, topic.color, profile.age, NumColors.pip(profile.colorIndex), profile.hat, guided,
+            profile.glasses, profile.neck,
+        )
     }
     val scope = rememberCoroutineScope()
 
@@ -121,7 +151,8 @@ fun GameScreen(
     LaunchedEffect(index) {
         mood = PipMood.THINK
         line = instruction
-        app.say(instruction)
+        // After the first question, let Pip finish his cheer before reading the next one.
+        app.say(instruction, queue = index > 0)
     }
 
     fun finish() {
@@ -150,7 +181,7 @@ fun GameScreen(
                 line = custom ?: Quips.correct.random()
                 app.say(line)
                 scope.launch {
-                    delay(1700)
+                    delay(2000)
                     if (index + 1 >= total) {
                         finish()
                     } else {
@@ -202,7 +233,7 @@ fun GameScreen(
                     .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Pip(Modifier.size(78.dp), mood = mood, color = ctx.pipColor, hat = ctx.hat)
+                Pip(Modifier.size(78.dp), mood = mood, color = ctx.pipColor, hat = ctx.hat, glasses = ctx.glasses, neck = ctx.neck)
                 Spacer(Modifier.width(4.dp))
                 SpeechBubble(line, Modifier.weight(1f), size = 16.sp)
             }
@@ -222,6 +253,18 @@ fun GameScreen(
                         GameType.KANGAROO_JUMPS -> KangarooJumpsGame(question, attempts, ctx, onAnswer)
                         GameType.PIZZA_SHARE -> PizzaShareGame(question, attempts, ctx, onAnswer)
                         GameType.PACK_BOXES -> PackBoxesGame(question, attempts, ctx, onAnswer)
+                        GameType.DOMINO_DOTS -> DominoDotsGame(question, attempts, ctx, onAnswer)
+                        GameType.SNAIL_RACE -> SnailRaceGame(question, attempts, ctx, onAnswer)
+                        GameType.MYSTERY_BOX -> MysteryBoxGame(question, attempts, ctx, onAnswer)
+                        GameType.BUBBLE_POP -> BubblePopGame(question, attempts, ctx, onAnswer)
+                        GameType.TOWER_COMPARE -> TowerCompareGame(question, attempts, ctx, onAnswer)
+                        GameType.MAGIC_HAT -> MagicHatGame(question, attempts, ctx, onAnswer)
+                        GameType.FLOWER_GARDEN -> FlowerGardenGame(question, attempts, ctx, onAnswer)
+                        GameType.LADYBUG_SPOTS -> LadybugSpotsGame(question, attempts, ctx, onAnswer)
+                        GameType.TIMES_MACHINE -> NumberMachineGame(question, attempts, ctx, onAnswer, divide = false)
+                        GameType.MONSTER_MUNCH -> MonsterMunchGame(question, attempts, ctx, onAnswer)
+                        GameType.CUPCAKE_TRAYS -> CupcakeTraysGame(question, attempts, ctx, onAnswer)
+                        GameType.DIVIDE_MACHINE -> NumberMachineGame(question, attempts, ctx, onAnswer, divide = true)
                         GameType.QUIZ -> QuizGame(question, attempts, ctx, onAnswer)
                     }
                 }

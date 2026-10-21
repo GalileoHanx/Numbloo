@@ -42,6 +42,7 @@ import com.numbloo.mathfun.ui.components.FunText
 import com.numbloo.mathfun.ui.components.Gap
 import com.numbloo.mathfun.ui.components.Pip
 import com.numbloo.mathfun.ui.components.PipMood
+import com.numbloo.mathfun.ui.components.ProfilePip
 import com.numbloo.mathfun.ui.components.SpeechBubble
 import com.numbloo.mathfun.ui.components.StarsRow
 import com.numbloo.mathfun.ui.components.TopBar
@@ -55,6 +56,7 @@ fun LevelScreen(
     profile: Profile,
     onBeginner: () -> Unit,
     onStickers: () -> Unit,
+    onCloset: () -> Unit,
     onSwitchPlayer: () -> Unit,
 ) {
     var line by remember { mutableStateOf("Hi ${profile.name}! Pick your level.") }
@@ -70,28 +72,49 @@ fun LevelScreen(
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 BouncyButton(
                     "👋 Switch",
                     Color.White,
                     textColor = NumColors.InkSoft,
-                    fontSize = 15.sp,
-                    height = 46.dp,
-                    modifier = Modifier.width(120.dp),
+                    fontSize = 14.sp,
+                    height = 48.dp,
+                    modifier = Modifier.weight(1f),
                 ) { onSwitchPlayer() }
-                Spacer(Modifier.weight(1f))
                 BouncyButton(
                     "🏷️ Stickers",
                     Color.White,
                     textColor = NumColors.Ink,
-                    fontSize = 15.sp,
-                    height = 46.dp,
-                    modifier = Modifier.width(140.dp),
+                    fontSize = 14.sp,
+                    height = 48.dp,
+                    modifier = Modifier.weight(1f),
                 ) { app.play(Sfx.TAP); onStickers() }
+                BouncyButton(
+                    if (profile.closetOpen) "👕 Closet" else "👕 🔒",
+                    if (profile.closetOpen) Color(0xFFB388FF) else Color.White,
+                    textColor = if (profile.closetOpen) Color.White else NumColors.InkSoft,
+                    fontSize = 14.sp,
+                    height = 48.dp,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    if (profile.closetOpen) {
+                        app.play(Sfx.TAP)
+                        onCloset()
+                    } else {
+                        app.play(Sfx.WRONG)
+                        mood = PipMood.OOPS
+                        line = "My closet is locked! Win any game with 3 stars to open it."
+                        app.say(line)
+                    }
+                }
             }
             Gap(10.dp)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Pip(Modifier.size(120.dp), mood = mood, color = NumColors.pip(profile.colorIndex), hat = profile.hat)
+                ProfilePip(profile, Modifier.size(120.dp), mood = mood)
                 SpeechBubble(line, Modifier.weight(1f))
             }
             Gap(6.dp)
@@ -176,7 +199,7 @@ fun TopicMapScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Pip(Modifier.size(90.dp), mood = PipMood.HAPPY, color = NumColors.pip(profile.colorIndex), hat = profile.hat)
+                ProfilePip(profile, Modifier.size(90.dp))
                 SpeechBubble(
                     if (profile.age <= 5) "Start with Addition, it's yummy!" else "Pick any topic. I'll explain first!",
                     Modifier.weight(1f),
@@ -250,7 +273,7 @@ fun TopicHubScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Pip(Modifier.size(90.dp), mood = PipMood.HAPPY, color = NumColors.pip(profile.colorIndex), hat = profile.hat)
+                    ProfilePip(profile, Modifier.size(90.dp))
                     SpeechBubble(topic.tagline, Modifier.weight(1f))
                 }
                 Gap(6.dp)

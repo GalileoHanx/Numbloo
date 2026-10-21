@@ -42,6 +42,7 @@ import com.numbloo.mathfun.ui.components.Gap
 import com.numbloo.mathfun.ui.components.Panel
 import com.numbloo.mathfun.ui.components.Pip
 import com.numbloo.mathfun.ui.components.PipMood
+import com.numbloo.mathfun.ui.components.ProfilePip
 import com.numbloo.mathfun.ui.components.TopBar
 import com.numbloo.mathfun.ui.theme.NumColors
 import kotlin.random.Random
@@ -215,7 +216,7 @@ private fun PlayerReport(
 ) {
     Panel(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Pip(Modifier.size(64.dp), color = NumColors.pip(p.colorIndex), hat = p.hat)
+            ProfilePip(p, Modifier.size(64.dp))
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 FunText(p.name, 22.sp, NumColors.Ink, align = TextAlign.Start, maxLines = 1)

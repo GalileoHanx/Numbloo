@@ -67,7 +67,12 @@ class SoundFx {
                 .build()
             track.write(data, 0, data.size)
             track.play()
-            Thread.sleep(data.size * 1000L / rate + 60L)
+            // Wait for the whole sound plus the speaker's output delay before closing.
+            Thread.sleep(data.size * 1000L / rate + 450L)
+            try {
+                track.stop()
+            } catch (e: Exception) {
+            }
         } catch (e: Exception) {
             // sound is optional
         } finally {
@@ -104,10 +109,12 @@ class SoundFx {
             )
             Sfx.WHOOSH -> listOf(noise(220, 0.25f))
         }
-        val total = parts.sumOf { it.size }
+        // A short silent tail so the fade-out finishes before the track is closed.
+        val padded = parts + listOf(silence(180))
+        val total = padded.sumOf { it.size }
         val out = ShortArray(total)
         var i = 0
-        for (p in parts) for (v in p) {
+        for (p in padded) for (v in p) {
             out[i++] = (v.coerceIn(-1f, 1f) * 32767f).toInt().toShort()
         }
         return out
@@ -138,7 +145,7 @@ class SoundFx {
                 Wave.TRIANGLE -> 4.0 * abs(p - 0.5) - 1.0
             }
             val attack = min(1f, i / (rate * 0.005f))
-            val release = if (t > 0.7f) (1f - t) / 0.3f else 1f
+            val release = if (t > 0.6f) (1f - t) / 0.4f else 1f
             out[i] = (v * vol * attack * release).toFloat()
         }
         return out
@@ -148,7 +155,7 @@ class SoundFx {
         val n = rate * ms / 1000
         return FloatArray(n) { i ->
             val t = i.toFloat() / n
-            (Random.nextFloat() * 2f - 1f) * vol * (1f - t)
+            (Random.nextFloat() * 2f - 1f) * vol * (1f - t) * (1f - t)
         }
     }
 

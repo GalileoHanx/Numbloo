@@ -26,6 +26,10 @@ object NumColors {
         Color(0xFFFF6FA8), // bubblegum
         Color(0xFFB388FF), // grape
         Color(0xFFFFD54F), // banana
+        Color(0xFF5EE6C0), // mint (unlockable)
+        Color(0xFFE53958), // ruby (unlockable)
+        Color(0xFFF2B705), // gold (unlockable)
+        Color(0xFF3D4A9E), // midnight (unlockable)
     )
 
     fun pip(index: Int): Color = PipPalette[((index % PipPalette.size) + PipPalette.size) % PipPalette.size]
