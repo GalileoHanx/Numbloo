@@ -53,10 +53,20 @@ object QuestionGen {
                 GameType.SNAIL_RACE, GameType.FROG_HOP -> windowed(topic, t, n)
                 GameType.KANGAROO_JUMPS -> skip(t, n, level)
                 GameType.MYSTERY_BOX, GameType.MAGIC_HAT -> hideB(levelQuestion(topic, level, t, n), n)
+                // Dragging cookies one by one: keep the pile small.
+                GameType.FAIR_SHARE -> div(t, n, maxDivisor = 4, maxTotal = 24)
                 else -> levelQuestion(topic, level, t, n)
             }
         }
         return when (game) {
+            GameType.FILL_BASKET -> add(t, n, maxSum = 10)
+            GameType.STAR_CATCHER -> add(t, n, maxSum = 20)
+            GameType.MOLE_WHACK -> sub(t, n, maxStart = 15)
+            GameType.MAILBOX -> sub(t, n, maxStart = 12)
+            GameType.TILE_PAINTER -> mul(t, n, maxGroups = 5, maxPer = 5)
+            GameType.GO_FISHING -> mul(t, n, maxGroups = 5, maxPer = 10)
+            GameType.FAIR_SHARE -> div(t, n, maxDivisor = 4, maxTotal = 16)
+            GameType.LANE_RACER -> div(t, n, maxDivisor = 5, maxTotal = 30)
             GameType.SUM_SNAP -> add(t, n, maxSum = 10)
             GameType.SILLY_ADD -> add(t, n, maxSum = 20)
             GameType.DIFF_SNAP -> sub(t, n, maxStart = 10)

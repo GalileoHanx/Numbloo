@@ -174,7 +174,11 @@ class AppState(context: Context) {
         val next = level.next
         val levelUnlocked = if (next != null && !p.topicUnlocked(topic, next) && updated.topicUnlocked(topic, next)) next else null
 
-        profiles[i] = updated
+        profiles[i] = if (levelUnlocked != null) {
+            updated.copy(unlockedKeys = updated.unlockedKeys + Profile.statsKey(topic, levelUnlocked))
+        } else {
+            updated
+        }
         save()
         return GameResult(
             topic = topic,

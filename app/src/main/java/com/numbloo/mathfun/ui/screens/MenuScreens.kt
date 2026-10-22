@@ -344,13 +344,16 @@ fun TopicHubScreen(
                 FunText("Games 🎮", 22.sp, NumColors.Ink, Modifier.fillMaxWidth(), align = TextAlign.Start)
                 Gap(8.dp)
                 Curriculum.starGames(topic, level).forEach { g ->
+                    val best = stats.bestStars[g.id] ?: 0
                     HubCard(
                         emoji = g.emoji,
                         title = g.title,
                         blurb = g.blurb,
                         color = Color.White,
                         textColor = NumColors.Ink,
-                        stars = stats.bestStars[g.id] ?: 0,
+                        badge = if (g in GameType.ADDED_V4 && best == 0) "New!" else null,
+                        badgeColor = Color(0xFFFF4D6D),
+                        stars = best,
                     ) { app.play(Sfx.TAP); onGame(g) }
                     Gap(12.dp)
                 }

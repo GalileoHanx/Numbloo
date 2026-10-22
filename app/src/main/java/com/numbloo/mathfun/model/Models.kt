@@ -62,7 +62,24 @@ enum class GameType(
     SHARE_SNAP("share_snap", "Share Pairs", "🍰", "Find two cards that divide to the target", Topic.DIV),
     SILLY_DIV("silly_div", "Silly Shares", "🤪", "Is Pip right or silly? Catch his mistakes!", Topic.DIV),
 
+    // Round 4: real games (drag, catch, whack, steer)
+    FILL_BASKET("fill_basket", "Fruit Basket", "🧺", "Drag fruit in to make the number", Topic.ADD),
+    STAR_CATCHER("star_catcher", "Star Catcher", "🌟", "Move Pip to catch the right star", Topic.ADD),
+    MOLE_WHACK("mole_whack", "Mole Whack", "🔨", "Bonk the mole holding the answer", Topic.SUB),
+    MAILBOX("mailbox", "Mail Sorter", "📮", "Drag letters into the right mailbox", Topic.SUB),
+    TILE_PAINTER("tile_painter", "Tile Painter", "🎨", "Paint a rectangle with the right tiles", Topic.MUL),
+    GO_FISHING("go_fishing", "Go Fishing", "🎣", "Hook the fish with the answer", Topic.MUL),
+    FAIR_SHARE("fair_share", "Cookie Share", "🍪", "Drag cookies to share them fairly", Topic.DIV),
+    LANE_RACER("lane_racer", "Lane Racer", "🏎️", "Steer into the lane with the answer", Topic.DIV),
+
     QUIZ("quiz", "Snack Quiz", "🧠", "Quick questions for a big brain", null);
+
+    companion object {
+        /** Games added in v0.4. Used so levels opened before they existed stay open. */
+        val ADDED_V4: Set<GameType> = setOf(
+            FILL_BASKET, STAR_CATCHER, MOLE_WHACK, MAILBOX, TILE_PAINTER, GO_FISHING, FAIR_SHARE, LANE_RACER,
+        )
+    }
 
     val isSnap: Boolean get() = this == SUM_SNAP || this == DIFF_SNAP || this == TIMES_SNAP || this == SHARE_SNAP
     val isSilly: Boolean get() = this == SILLY_ADD || this == SILLY_SUB || this == SILLY_MUL || this == SILLY_DIV
@@ -74,33 +91,43 @@ object Curriculum {
     fun games(topic: Topic, level: Level): List<GameType> = when (level) {
         Level.BEGINNER -> when (topic) {
             Topic.ADD -> listOf(
-                GameType.FEED_PIP, GameType.BALLOON_POP, GameType.DOMINO_DOTS, GameType.SNAIL_RACE,
+                GameType.FEED_PIP, GameType.BALLOON_POP, GameType.FILL_BASKET, GameType.STAR_CATCHER,
+                GameType.DOMINO_DOTS, GameType.SNAIL_RACE,
                 GameType.MYSTERY_BOX, GameType.SUM_SNAP, GameType.SILLY_ADD,
             )
             Topic.SUB -> listOf(
-                GameType.FROG_HOP, GameType.SNEAKY_SQUIRREL, GameType.BUBBLE_POP, GameType.TOWER_COMPARE,
+                GameType.FROG_HOP, GameType.SNEAKY_SQUIRREL, GameType.MOLE_WHACK, GameType.MAILBOX,
+                GameType.BUBBLE_POP, GameType.TOWER_COMPARE,
                 GameType.MAGIC_HAT, GameType.DIFF_SNAP, GameType.SILLY_SUB,
             )
             Topic.MUL -> listOf(
-                GameType.COOKIE_PLATES, GameType.KANGAROO_JUMPS, GameType.FLOWER_GARDEN, GameType.LADYBUG_SPOTS,
+                GameType.COOKIE_PLATES, GameType.KANGAROO_JUMPS, GameType.TILE_PAINTER, GameType.GO_FISHING,
+                GameType.FLOWER_GARDEN, GameType.LADYBUG_SPOTS,
                 GameType.TIMES_MACHINE, GameType.TIMES_SNAP, GameType.SILLY_MUL,
             )
             Topic.DIV -> listOf(
-                GameType.PIZZA_SHARE, GameType.PACK_BOXES, GameType.MONSTER_MUNCH, GameType.CUPCAKE_TRAYS,
+                GameType.PIZZA_SHARE, GameType.PACK_BOXES, GameType.FAIR_SHARE, GameType.LANE_RACER,
+                GameType.MONSTER_MUNCH, GameType.CUPCAKE_TRAYS,
                 GameType.DIVIDE_MACHINE, GameType.SHARE_SNAP, GameType.SILLY_DIV,
             )
         }
         Level.INTERMEDIATE -> when (topic) {
-            Topic.ADD -> listOf(GameType.BALLOON_POP, GameType.SNAIL_RACE, GameType.MYSTERY_BOX, GameType.SUM_SNAP, GameType.SILLY_ADD)
-            Topic.SUB -> listOf(GameType.BALLOON_POP, GameType.FROG_HOP, GameType.MAGIC_HAT, GameType.DIFF_SNAP, GameType.SILLY_SUB)
-            Topic.MUL -> listOf(GameType.BALLOON_POP, GameType.KANGAROO_JUMPS, GameType.TIMES_MACHINE, GameType.TIMES_SNAP, GameType.SILLY_MUL)
-            Topic.DIV -> listOf(GameType.BALLOON_POP, GameType.DIVIDE_MACHINE, GameType.MYSTERY_BOX, GameType.SHARE_SNAP, GameType.SILLY_DIV)
+            Topic.ADD -> listOf(GameType.BALLOON_POP, GameType.FILL_BASKET, GameType.STAR_CATCHER, GameType.SNAIL_RACE, GameType.MYSTERY_BOX, GameType.SUM_SNAP, GameType.SILLY_ADD)
+            Topic.SUB -> listOf(GameType.BALLOON_POP, GameType.MOLE_WHACK, GameType.MAILBOX, GameType.FROG_HOP, GameType.MAGIC_HAT, GameType.DIFF_SNAP, GameType.SILLY_SUB)
+            Topic.MUL -> listOf(
+                GameType.BALLOON_POP, GameType.TILE_PAINTER, GameType.GO_FISHING, GameType.KANGAROO_JUMPS,
+                GameType.TIMES_MACHINE, GameType.TIMES_SNAP, GameType.SILLY_MUL,
+            )
+            Topic.DIV -> listOf(
+                GameType.BALLOON_POP, GameType.FAIR_SHARE, GameType.LANE_RACER, GameType.DIVIDE_MACHINE,
+                GameType.MYSTERY_BOX, GameType.SHARE_SNAP, GameType.SILLY_DIV,
+            )
         }
         Level.PRO -> when (topic) {
-            Topic.ADD -> listOf(GameType.BALLOON_POP, GameType.MYSTERY_BOX, GameType.SUM_SNAP, GameType.SILLY_ADD)
-            Topic.SUB -> listOf(GameType.BALLOON_POP, GameType.MAGIC_HAT, GameType.DIFF_SNAP, GameType.SILLY_SUB)
-            Topic.MUL -> listOf(GameType.BALLOON_POP, GameType.KANGAROO_JUMPS, GameType.TIMES_MACHINE, GameType.TIMES_SNAP, GameType.SILLY_MUL)
-            Topic.DIV -> listOf(GameType.BALLOON_POP, GameType.DIVIDE_MACHINE, GameType.MYSTERY_BOX, GameType.SHARE_SNAP, GameType.SILLY_DIV)
+            Topic.ADD -> listOf(GameType.BALLOON_POP, GameType.FILL_BASKET, GameType.STAR_CATCHER, GameType.MYSTERY_BOX, GameType.SUM_SNAP, GameType.SILLY_ADD)
+            Topic.SUB -> listOf(GameType.BALLOON_POP, GameType.MOLE_WHACK, GameType.MAILBOX, GameType.MAGIC_HAT, GameType.DIFF_SNAP, GameType.SILLY_SUB)
+            Topic.MUL -> listOf(GameType.BALLOON_POP, GameType.GO_FISHING, GameType.KANGAROO_JUMPS, GameType.TIMES_MACHINE, GameType.TIMES_SNAP, GameType.SILLY_MUL)
+            Topic.DIV -> listOf(GameType.BALLOON_POP, GameType.LANE_RACER, GameType.DIVIDE_MACHINE, GameType.MYSTERY_BOX, GameType.SHARE_SNAP, GameType.SILLY_DIV)
         }
     }
 
@@ -108,6 +135,22 @@ object Curriculum {
     fun starGames(topic: Topic, level: Level): List<GameType> = games(topic, level) + GameType.QUIZ
 
     fun maxStars(topic: Topic, level: Level): Int = starGames(topic, level).size * 3
+
+    /** Levels a player had opened with the v0.3 game list (before the v0.4 games existed). */
+    fun legacyUnlocks(p: Profile): Set<String> {
+        val out = HashSet<String>()
+        for (t in Topic.entries) {
+            var open = true
+            for (lv in listOf(Level.BEGINNER, Level.INTERMEDIATE)) {
+                val best = p.stats(t, lv).bestStars
+                val full = starGames(t, lv).filter { it !in GameType.ADDED_V4 }.all { (best[it.id] ?: 0) >= 3 }
+                open = open && full
+                val next = lv.next
+                if (open && next != null) out.add(Profile.statsKey(t, next))
+            }
+        }
+        return out
+    }
 }
 
 enum class Level(
@@ -279,6 +322,8 @@ data class Profile(
     val mouth: Mouth = Mouth.NORMAL,
     /** Grown-ups can open every level (for testing or older kids). */
     val allUnlocked: Boolean = false,
+    /** Levels already opened (e.g. "int_add"). Once open, a level stays open even if new games are added. */
+    val unlockedKeys: Set<String> = emptySet(),
 ) {
     fun stats(topic: Topic, level: Level = Level.BEGINNER): TopicStats =
         topics[statsKey(topic, level)] ?: TopicStats(tier = if (level == Level.BEGINNER) startingTier(age) else 1)
@@ -297,7 +342,7 @@ data class Profile(
 
     fun topicUnlocked(topic: Topic, level: Level): Boolean {
         val prev = level.previous ?: return true
-        if (allUnlocked) return true
+        if (allUnlocked || statsKey(topic, level) in unlockedKeys) return true
         return topicUnlocked(topic, prev) && fullStars(topic, prev)
     }
 

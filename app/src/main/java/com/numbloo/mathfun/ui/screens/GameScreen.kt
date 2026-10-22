@@ -43,6 +43,14 @@ import com.numbloo.mathfun.ui.components.ProgressDots
 import com.numbloo.mathfun.ui.components.RoundButton
 import com.numbloo.mathfun.ui.components.SpeechBubble
 import com.numbloo.mathfun.ui.games.BalloonPopGame
+import com.numbloo.mathfun.ui.games.FairShareGame
+import com.numbloo.mathfun.ui.games.FillBasketGame
+import com.numbloo.mathfun.ui.games.GoFishingGame
+import com.numbloo.mathfun.ui.games.LaneRacerGame
+import com.numbloo.mathfun.ui.games.MailboxGame
+import com.numbloo.mathfun.ui.games.MoleWhackGame
+import com.numbloo.mathfun.ui.games.StarCatcherGame
+import com.numbloo.mathfun.ui.games.TilePainterGame
 import com.numbloo.mathfun.ui.games.BubblePopGame
 import com.numbloo.mathfun.ui.games.CupcakeTraysGame
 import com.numbloo.mathfun.ui.games.DominoDotsGame
@@ -118,6 +126,14 @@ fun instructionFor(game: GameType, q: Question): String = when (game) {
     GameType.SHARE_SNAP -> "Find a big card and a small card that divide to make ${q.result}!"
     GameType.SILLY_ADD, GameType.SILLY_SUB, GameType.SILLY_MUL, GameType.SILLY_DIV ->
         "Pip did some math. Is he right, or is he being silly?"
+    GameType.FILL_BASKET -> "Drag fruit into the basket to make exactly ${q.result}!"
+    GameType.STAR_CATCHER -> "Catch the star that answers ${q.spokenEquation}! Drag Pip left and right."
+    GameType.MOLE_WHACK -> "Whack the mole holding the answer to ${q.spokenEquation}!"
+    GameType.MAILBOX -> "Drag each letter into the mailbox with its answer!"
+    GameType.TILE_PAINTER -> "Drag your finger to paint a rectangle with ${q.result} tiles!"
+    GameType.GO_FISHING -> "Tap the fish with the answer to ${q.spokenEquation}!"
+    GameType.FAIR_SHARE -> "Drag the cookies onto the plates. Share ${q.a} cookies fairly with ${q.b} friends!"
+    GameType.LANE_RACER -> "Steer into the lane with the answer to ${q.spokenEquation}! Tap a lane."
     GameType.QUIZ -> "What is ${q.spokenEquation}?"
 }
 
@@ -136,6 +152,7 @@ fun GameScreen(
     val total = when {
         guided -> 3
         game == GameType.QUIZ -> 8
+        game == GameType.FAIR_SHARE || game == GameType.MAILBOX -> 4
         else -> 5
     }
     val startTier = remember { if (guided) 1 else profile.stats(topic, level).tier }
@@ -280,6 +297,14 @@ fun GameScreen(
                             SnapGame(question, attempts, ctx, onAnswer)
                         GameType.SILLY_ADD, GameType.SILLY_SUB, GameType.SILLY_MUL, GameType.SILLY_DIV ->
                             SillyPipGame(question, attempts, ctx, onAnswer)
+                        GameType.FILL_BASKET -> FillBasketGame(question, attempts, ctx, onAnswer)
+                        GameType.STAR_CATCHER -> StarCatcherGame(question, attempts, ctx, onAnswer)
+                        GameType.MOLE_WHACK -> MoleWhackGame(question, attempts, ctx, onAnswer)
+                        GameType.MAILBOX -> MailboxGame(question, attempts, ctx, onAnswer)
+                        GameType.TILE_PAINTER -> TilePainterGame(question, attempts, ctx, onAnswer)
+                        GameType.GO_FISHING -> GoFishingGame(question, attempts, ctx, onAnswer)
+                        GameType.FAIR_SHARE -> FairShareGame(question, attempts, ctx, onAnswer)
+                        GameType.LANE_RACER -> LaneRacerGame(question, attempts, ctx, onAnswer)
                         GameType.QUIZ -> QuizGame(question, attempts, ctx, onAnswer)
                     }
                 }

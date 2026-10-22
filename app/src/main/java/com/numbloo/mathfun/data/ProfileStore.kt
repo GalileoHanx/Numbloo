@@ -1,6 +1,7 @@
 package com.numbloo.mathfun.data
 
 import android.content.Context
+import com.numbloo.mathfun.model.Curriculum
 import com.numbloo.mathfun.model.Eyes
 import com.numbloo.mathfun.model.Flag
 import com.numbloo.mathfun.model.Glasses
@@ -78,6 +79,9 @@ class ProfileStore(context: Context) {
         o.put("eyes", p.eyes.name)
         o.put("mouth", p.mouth.name)
         o.put("allUnlocked", p.allUnlocked)
+        val un = JSONArray()
+        p.unlockedKeys.forEach { un.put(it) }
+        o.put("unlocked", un)
         return o
     }
 
@@ -117,7 +121,10 @@ class ProfileStore(context: Context) {
                 topics[k] = parseStats(so)
             }
         }
-        return Profile(
+        val unlocked = HashSet<String>()
+        val ua = o.optJSONArray("unlocked")
+        if (ua != null) for (i in 0 until ua.length()) unlocked.add(ua.optString(i))
+        val profile = Profile(
             id = id,
             name = o.optString("name", "Player"),
             age = o.optInt("age", 6),
@@ -137,7 +144,10 @@ class ProfileStore(context: Context) {
             eyes = Eyes.entries.firstOrNull { it.name == o.optString("eyes") } ?: Eyes.NORMAL,
             mouth = Mouth.entries.firstOrNull { it.name == o.optString("mouth") } ?: Mouth.NORMAL,
             allUnlocked = o.optBoolean("allUnlocked", false),
+            unlockedKeys = unlocked,
         )
+        // Saved before v0.4: keep every level that was already open under the old game list.
+        return if (ua == null) profile.copy(unlockedKeys = Curriculum.legacyUnlocks(profile)) else profile
     }
 
     private fun parseStats(o: JSONObject): TopicStats {
