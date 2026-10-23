@@ -37,6 +37,7 @@ import com.numbloo.mathfun.audio.Sfx
 import com.numbloo.mathfun.model.Curriculum
 import com.numbloo.mathfun.model.Level
 import com.numbloo.mathfun.model.Profile
+import com.numbloo.mathfun.model.Rewards
 import com.numbloo.mathfun.model.Topic
 import com.numbloo.mathfun.ui.components.BouncyButton
 import com.numbloo.mathfun.ui.components.FunText
@@ -225,7 +226,7 @@ private fun PlayerReport(
             Column(Modifier.weight(1f)) {
                 FunText(p.name, 22.sp, NumColors.Ink, align = TextAlign.Start, maxLines = 1)
                 FunText(
-                    "⭐ ${p.totalStars} stars  •  🏷️ ${p.stickers.size} stickers  •  Pip's ${p.hat.label}",
+                    "⭐ ${p.collectedStars()}/${Rewards.totalStars()} stars  •  🏆 ${Rewards.trophies.count { p.meets(it) }}/${Rewards.trophies.size}  •  🏷️ ${p.stickers.size}",
                     13.sp,
                     NumColors.InkSoft,
                     align = TextAlign.Start,

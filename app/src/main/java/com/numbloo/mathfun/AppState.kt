@@ -9,13 +9,13 @@ import com.numbloo.mathfun.audio.Sfx
 import com.numbloo.mathfun.audio.SoundFx
 import com.numbloo.mathfun.audio.Speaker
 import com.numbloo.mathfun.data.ProfileStore
-import com.numbloo.mathfun.model.Closet
 import com.numbloo.mathfun.model.GameResult
 import com.numbloo.mathfun.model.Level
 import com.numbloo.mathfun.model.PipColors
 import com.numbloo.mathfun.model.GameType
-import com.numbloo.mathfun.model.Hat
 import com.numbloo.mathfun.model.Profile
+import com.numbloo.mathfun.model.Rewards
+import com.numbloo.mathfun.model.Unlock
 import com.numbloo.mathfun.model.Stickers
 import com.numbloo.mathfun.model.Topic
 import java.util.UUID
@@ -156,13 +156,10 @@ class AppState(context: Context) {
             Stickers.forLevel(level).filter { it.id !in owned }.randomOrNull()
         } else null
 
-        val oldHat = Hat.forStars(p.totalStars)
         val newTotal = p.totalStars + stars
-        val newHat = Hat.forStars(newTotal).takeIf { it != oldHat }
 
-        // 3 stars in a real game (not lesson practice) counts as a gold win for Pip's Closet.
+        // 3 stars in a real game (not lesson practice) counts as a gold win (opens Pip's Closet).
         val newGold = p.goldWins + if (!guided && stars >= 3) 1 else 0
-        val unlocked = Closet.unlockedBetween(p.goldWins, newGold)
 
         val updated = p.withStats(topic, level, newStats).copy(
             goldWins = newGold,
@@ -174,11 +171,16 @@ class AppState(context: Context) {
         val next = level.next
         val levelUnlocked = if (next != null && !p.topicUnlocked(topic, next) && updated.topicUnlocked(topic, next)) next else null
 
-        profiles[i] = if (levelUnlocked != null) {
+        val opened = if (levelUnlocked != null) {
             updated.copy(unlockedKeys = updated.unlockedKeys + Profile.statsKey(topic, levelUnlocked))
         } else {
             updated
         }
+
+        // New closet items and trophies won by this game.
+        val newItems = Rewards.all.filter { it.unlock != Unlock.Free && !p.owns(it) && opened.owns(it) }
+        val trophies = Rewards.trophies.filter { !p.meets(it) && opened.meets(it) }.map { Rewards.trophyName(it) }
+        profiles[i] = opened.copy(ownedItems = opened.ownedItems + newItems.map { it.id })
         save()
         return GameResult(
             topic = topic,
@@ -189,11 +191,12 @@ class AppState(context: Context) {
             correctFirstTry = correctFirstTry,
             total = total,
             sticker = sticker,
-            newHat = newHat,
+            newHat = null,
             tierChange = newTier - s.tier,
-            closetOpened = p.goldWins == 0 && newGold >= 1,
-            unlocked = unlocked,
+            closetOpened = !p.closetOpen && opened.closetOpen,
+            unlocked = newItems.map { "${it.label} (${it.shelf.title.substringAfter(' ')})" },
             levelUnlocked = levelUnlocked,
+            trophies = trophies,
         )
     }
 

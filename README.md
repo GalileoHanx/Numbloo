@@ -7,7 +7,7 @@ A playful Android math app for kids aged 4–10. Pip, a hungry, goofy blob, expl
 * **Sound effects** are generated in code, so the app ships no audio files.
 * **Progress stays on the phone.**
 
-## What's inside (v0.4)
+## What's inside (v0.5)
 
 | Area | Details |
 |---|---|
@@ -23,8 +23,8 @@ A playful Android math app for kids aged 4–10. Pip, a hungry, goofy blob, expl
 | Every topic | Snack Quiz |
 | Action games | Drag and drop (Fruit Basket, Mail Sorter, Cookie Share), finger painting (Tile Painter), catch and steer arcades (Star Catcher, Lane Racer), whack and hook (Mole Whack, Go Fishing). These also appear in Intermediate and Pro. Levels already opened stay open when new games are added. |
 | Confidence features | Small numbers first. Difficulty adjusts automatically (Easy / Medium / Tricky). Wrong answers get a funny "hic!" instead of a penalty. A visual hint appears after one miss, and the right answer wiggles after two. Every game gives at least 1 star. |
-| Rewards | Stars, plus a sticker book with 24 stickers per level (Beginner, Intermediate, Pro); stickers come from the level being played. Hats unlock with stars (party hat, crown, wizard hat, propeller cap). |
-| Pip's Closet | Opens after the first 3-star game. Flags (Saudi Arabia, UAE, Kuwait, Qatar, Bahrain, Oman, Philippines, Portugal, England, Spain, Brazil) unlock right away. More 3-star wins unlock hair, job outfits (chef, doctor, firefighter, builder, pilot, astronaut), eyes, mouths, colours, glasses and neckwear. Hats earned with stars can be picked too. |
+| Rewards | Stars, plus a sticker book with 24 stickers per level (Beginner, Intermediate, Pro); stickers come from the level being played. |
+| Pip's Closet | 137 items on 10 shelves: colours, flags, hair, jobs, eyes, mouths, hats (incl. ghutra, shemagh, hijab), glasses, neckwear and pets. Items unlock with **collected stars** (the best stars in each game, so all 300 stars count once): something new every 3–15 stars, right up to the last star. **20 trophies** win special prizes: each operation at each level (a pet), each whole level (medal + hat or colour), each operation at all levels (a special colour) and every star in the game (Rainbow Pip + super cape). Items already earned in older versions are kept. |
 | Grown-ups area | Protected by a parent gate. Turn voice and sounds on or off, see accuracy per topic, change age, reset or delete a player. |
 
 ## Get the APK from GitHub (no Android Studio needed)

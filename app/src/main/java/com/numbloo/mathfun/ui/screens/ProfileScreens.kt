@@ -126,7 +126,7 @@ private fun ProfileCard(p: Profile, onClick: () -> Unit) {
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 FunText(p.name, 24.sp, NumColors.Ink, maxLines = 1)
-                FunText("Age ${p.age}  •  ⭐ ${p.totalStars}  •  🏷️ ${p.stickers.size}", 15.sp, NumColors.InkSoft, weight = FontWeight.Bold)
+                FunText("Age ${p.age}  •  ⭐ ${p.collectedStars()}  •  🏷️ ${p.stickers.size}", 15.sp, NumColors.InkSoft, weight = FontWeight.Bold)
             }
             FunText("▶", 28.sp, NumColors.Grass)
         }

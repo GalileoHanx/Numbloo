@@ -9,6 +9,8 @@ import com.numbloo.mathfun.model.Hair
 import com.numbloo.mathfun.model.Job
 import com.numbloo.mathfun.model.Mouth
 import com.numbloo.mathfun.model.Neck
+import com.numbloo.mathfun.model.Pet
+import com.numbloo.mathfun.model.Rewards
 import com.numbloo.mathfun.model.Profile
 import com.numbloo.mathfun.model.Stickers
 import com.numbloo.mathfun.model.TopicStats
@@ -82,6 +84,10 @@ class ProfileStore(context: Context) {
         val un = JSONArray()
         p.unlockedKeys.forEach { un.put(it) }
         o.put("unlocked", un)
+        o.put("pet", p.pet.name)
+        val owned = JSONArray()
+        p.ownedItems.forEach { owned.put(it) }
+        o.put("owned", owned)
         return o
     }
 
@@ -124,6 +130,14 @@ class ProfileStore(context: Context) {
         val unlocked = HashSet<String>()
         val ua = o.optJSONArray("unlocked")
         if (ua != null) for (i in 0 until ua.length()) unlocked.add(ua.optString(i))
+        val owned = HashSet<String>()
+        val oa = o.optJSONArray("owned")
+        if (oa != null) {
+            for (i in 0 until oa.length()) owned.add(oa.optString(i))
+        } else {
+            // Saved before v0.5: keep everything already unlocked under the old rules.
+            owned.addAll(Rewards.legacyOwned(o.optInt("gold", 0), o.optInt("stars", 0)))
+        }
         val profile = Profile(
             id = id,
             name = o.optString("name", "Player"),
@@ -145,6 +159,8 @@ class ProfileStore(context: Context) {
             mouth = Mouth.entries.firstOrNull { it.name == o.optString("mouth") } ?: Mouth.NORMAL,
             allUnlocked = o.optBoolean("allUnlocked", false),
             unlockedKeys = unlocked,
+            pet = Pet.entries.firstOrNull { it.name == o.optString("pet") } ?: Pet.NONE,
+            ownedItems = owned,
         )
         // Saved before v0.4: keep every level that was already open under the old game list.
         return if (ua == null) profile.copy(unlockedKeys = Curriculum.legacyUnlocks(profile)) else profile

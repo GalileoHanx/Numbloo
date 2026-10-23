@@ -175,113 +175,164 @@ enum class Level(
     }
 }
 
-/** Pip earns hats as the child collects stars. */
-enum class Hat(val label: String, val starsNeeded: Int) {
-    NONE("Sprout", 0),
-    PARTY("Party Hat", 5),
-    CROWN("Crown", 15),
-    WIZARD("Wizard Hat", 30),
-    PROPELLER("Propeller Cap", 50);
+/* ------------------------------------------------------------------
+ * Things Pip can wear. What unlocks each one lives in Rewards.kt.
+ * ------------------------------------------------------------------ */
 
-    companion object {
-        fun forStars(stars: Int): Hat = entries.lastOrNull { stars >= it.starsNeeded } ?: NONE
-        fun next(stars: Int): Hat? = entries.firstOrNull { it.starsNeeded > stars }
-    }
+enum class Hat(val label: String) {
+    NONE("Sprout"),
+    PARTY("Party Hat"),
+    CROWN("Crown"),
+    WIZARD("Wizard Hat"),
+    PROPELLER("Propeller Cap"),
+    COWBOY("Cowboy Hat"),
+    PIRATE("Pirate Hat"),
+    BEANIE("Beanie"),
+    VIKING("Viking Helmet"),
+    GRAD_CAP("Graduation Cap"),
+    TOP_HAT("Top Hat"),
+    GHUTRA("Ghutra"),
+    SHEMAGH("Shemagh"),
+    HIJAB("Hijab"),
 }
 
-/** Glasses for Pip, unlocked by 3-star wins. */
-enum class Glasses(val label: String, val goldNeeded: Int) {
-    NONE("No glasses", 0),
-    SHADES("Cool shades", 2),
-    SPECS("Smart specs", 5),
-    STARS("Star glasses", 8),
+enum class Glasses(val label: String) {
+    NONE("No glasses"),
+    SHADES("Cool shades"),
+    SPECS("Smart specs"),
+    STARS("Star glasses"),
+    HEART_SHADES("Heart glasses"),
+    GOGGLES("Goggles"),
+    MONOCLE("Monocle"),
 }
 
-/** Neckwear for Pip, unlocked by 3-star wins. */
-enum class Neck(val label: String, val goldNeeded: Int) {
-    NONE("Nothing", 0),
-    BOW_TIE("Bow tie", 1),
-    SCARF("Cozy scarf", 4),
+enum class Neck(val label: String) {
+    NONE("Nothing"),
+    BOW_TIE("Bow tie"),
+    SCARF("Cozy scarf"),
+    TIE("Tie"),
+    BANDANA("Bandana"),
+    LEI("Flower lei"),
+    BRONZE_MEDAL("Bronze medal"),
+    SILVER_MEDAL("Silver medal"),
+    GOLD_MEDAL("Gold medal"),
+    CAPE("Super cape"),
 }
 
-/** Little flag Pip holds. All flags unlock as soon as Pip's Closet opens. */
-enum class Flag(val label: String, val emoji: String, val goldNeeded: Int) {
-    NONE("No flag", "", 0),
-    SAUDI("Saudi Arabia", "🇸🇦", 1),
-    UAE("UAE", "🇦🇪", 1),
-    KUWAIT("Kuwait", "🇰🇼", 1),
-    QATAR("Qatar", "🇶🇦", 1),
-    BAHRAIN("Bahrain", "🇧🇭", 1),
-    OMAN("Oman", "🇴🇲", 1),
-    PHILIPPINES("Philippines", "🇵🇭", 1),
-    PORTUGAL("Portugal", "🇵🇹", 1),
-    ENGLAND("England", "\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F", 1),
-    SPAIN("Spain", "🇪🇸", 1),
-    BRAZIL("Brazil", "🇧🇷", 1),
+/** Little flag Pip holds. */
+enum class Flag(val label: String, val emoji: String) {
+    NONE("No flag", ""),
+    SAUDI("Saudi Arabia", "🇸🇦"),
+    UAE("UAE", "🇦🇪"),
+    KUWAIT("Kuwait", "🇰🇼"),
+    QATAR("Qatar", "🇶🇦"),
+    BAHRAIN("Bahrain", "🇧🇭"),
+    OMAN("Oman", "🇴🇲"),
+    PHILIPPINES("Philippines", "🇵🇭"),
+    PORTUGAL("Portugal", "🇵🇹"),
+    ENGLAND("England", "\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F"),
+    SPAIN("Spain", "🇪🇸"),
+    BRAZIL("Brazil", "🇧🇷"),
+    EGYPT("Egypt", "🇪🇬"),
+    JORDAN("Jordan", "🇯🇴"),
+    MOROCCO("Morocco", "🇲🇦"),
+    IRAQ("Iraq", "🇮🇶"),
+    LEBANON("Lebanon", "🇱🇧"),
+    PALESTINE("Palestine", "🇵🇸"),
+    TURKEY("Türkiye", "🇹🇷"),
+    INDIA("India", "🇮🇳"),
+    PAKISTAN("Pakistan", "🇵🇰"),
+    INDONESIA("Indonesia", "🇮🇩"),
+    JAPAN("Japan", "🇯🇵"),
+    USA("USA", "🇺🇸"),
+    FRANCE("France", "🇫🇷"),
+    ITALY("Italy", "🇮🇹"),
+    GERMANY("Germany", "🇩🇪"),
+    ARGENTINA("Argentina", "🇦🇷"),
 }
 
-enum class Hair(val label: String, val goldNeeded: Int) {
-    NONE("Sprout", 0),
-    SPIKY("Spiky", 1),
-    CURLY("Curly", 2),
-    PIGTAILS("Pigtails", 3),
-    MOHAWK("Mohawk", 5),
-    SWOOP("Swoosh", 7),
+enum class Hair(val label: String) {
+    NONE("Sprout"),
+    SPIKY("Spiky"),
+    CURLY("Curly"),
+    PIGTAILS("Pigtails"),
+    MOHAWK("Mohawk"),
+    SWOOP("Swoosh"),
+    LONG("Long"),
+    BUN("Bun"),
+    AFRO("Afro"),
+    RAINBOW("Rainbow"),
 }
 
 /** Job outfits replace the hat while they are worn. */
-enum class Job(val label: String, val goldNeeded: Int) {
-    NONE("No job", 0),
-    CHEF("Chef", 2),
-    DOCTOR("Doctor", 3),
-    FIREFIGHTER("Firefighter", 4),
-    BUILDER("Builder", 6),
-    PILOT("Pilot", 8),
-    ASTRONAUT("Astronaut", 10),
+enum class Job(val label: String) {
+    NONE("No job"),
+    CHEF("Chef"),
+    DOCTOR("Doctor"),
+    FIREFIGHTER("Firefighter"),
+    BUILDER("Builder"),
+    PILOT("Pilot"),
+    ASTRONAUT("Astronaut"),
+    POLICE("Police"),
+    ARTIST("Artist"),
+    FARMER("Farmer"),
+    KNIGHT("Knight"),
+    DETECTIVE("Detective"),
+    DIVER("Diver"),
 }
 
-enum class Eyes(val label: String, val goldNeeded: Int) {
-    NORMAL("Normal", 0),
-    SPARKLY("Sparkly", 1),
-    SLEEPY("Sleepy", 3),
-    WINK("Winky", 4),
-    HEARTS("Hearts", 6),
-    STARRY("Starry", 9),
+enum class Eyes(val label: String) {
+    NORMAL("Normal"),
+    SPARKLY("Sparkly"),
+    SLEEPY("Sleepy"),
+    WINK("Winky"),
+    HEARTS("Hearts"),
+    STARRY("Starry"),
+    LASHES("Lashes"),
+    GOOGLY("Googly"),
+    ROBOT("Robot"),
+    SPIRAL("Dizzy"),
 }
 
-enum class Mouth(val label: String, val goldNeeded: Int) {
-    NORMAL("Normal", 0),
-    TOOTHY("Toothy", 2),
-    TONGUE("Silly tongue", 3),
-    MUSTACHE("Mustache", 5),
-    FANGS("Vampire", 7),
+enum class Mouth(val label: String) {
+    NORMAL("Normal"),
+    TOOTHY("Toothy"),
+    TONGUE("Silly tongue"),
+    MUSTACHE("Mustache"),
+    FANGS("Vampire"),
+    CAT("Kitty"),
+    BUNNY("Bunny teeth"),
+    GRIN("Big grin"),
+    BEARD("Beard"),
 }
 
-/** Pip's colours. The first six are free; the rest unlock with 3-star wins. */
+/** A little friend who sits next to Pip. Pets are trophies for finishing an operation's level. */
+enum class Pet(val label: String, val emoji: String) {
+    NONE("No pet", ""),
+    PUPPY("Puppy", "🐶"),
+    KITTEN("Kitten", "🐱"),
+    BUNNY("Bunny", "🐰"),
+    CHICK("Chick", "🐥"),
+    TURTLE("Turtle", "🐢"),
+    FOX("Fox", "🦊"),
+    PANDA("Panda", "🐼"),
+    PENGUIN("Penguin", "🐧"),
+    DINO("Dino", "🦖"),
+    OWL("Owl", "🦉"),
+    UNICORN("Unicorn", "🦄"),
+    DRAGON("Dragon", "🐉"),
+}
+
+/** Pip's colours (indexes match NumColors.PipPalette). The first six are free. */
 object PipColors {
-    val names = listOf("Lime", "Sky", "Tangerine", "Bubblegum", "Grape", "Banana", "Mint", "Ruby", "Gold", "Midnight")
-    val goldNeeded = listOf(0, 0, 0, 0, 0, 0, 3, 6, 10, 12)
+    val names = listOf(
+        "Lime", "Sky", "Tangerine", "Bubblegum", "Grape", "Banana",
+        "Mint", "Ruby", "Gold", "Midnight",
+        "Coral", "Lavender", "Teal", "Forest", "Peach", "Cocoa", "Silver",
+        "Diamond", "Blaze", "Ocean", "Galaxy", "Cherry", "Rainbow",
+    )
     const val FREE = 6
-}
-
-object Closet {
-    /** Labels of items that unlock when 3-star wins go from [old] to [new]. */
-    fun unlockedBetween(old: Int, new: Int): List<String> {
-        if (new <= old) return emptyList()
-        val out = ArrayList<String>()
-        val range = (old + 1)..new
-        Neck.entries.filter { it != Neck.NONE && it.goldNeeded in range }.forEach { out.add(it.label) }
-        Glasses.entries.filter { it != Glasses.NONE && it.goldNeeded in range }.forEach { out.add(it.label) }
-        if (old < 1 && new >= 1) out.add("Flags")
-        Hair.entries.filter { it != Hair.NONE && it.goldNeeded in range }.forEach { out.add(it.label + " hair") }
-        Job.entries.filter { it != Job.NONE && it.goldNeeded in range }.forEach { out.add(it.label + " outfit") }
-        Eyes.entries.filter { it != Eyes.NORMAL && it.goldNeeded in range }.forEach { out.add(it.label + " eyes") }
-        Mouth.entries.filter { it != Mouth.NORMAL && it.goldNeeded in range }.forEach { out.add(it.label + " mouth") }
-        PipColors.goldNeeded.forEachIndexed { i, need ->
-            if (need > 0 && need in range) out.add(PipColors.names[i] + " colour")
-        }
-        return out
-    }
+    const val RAINBOW = 22
 }
 
 /** How a child is doing in one topic. Difficulty "tier" is 1 (easy) to 3 (tricky). */
@@ -324,6 +375,9 @@ data class Profile(
     val allUnlocked: Boolean = false,
     /** Levels already opened (e.g. "int_add"). Once open, a level stays open even if new games are added. */
     val unlockedKeys: Set<String> = emptySet(),
+    val pet: Pet = Pet.NONE,
+    /** Closet items already earned (ids from Rewards). */
+    val ownedItems: Set<String> = emptySet(),
 ) {
     fun stats(topic: Topic, level: Level = Level.BEGINNER): TopicStats =
         topics[statsKey(topic, level)] ?: TopicStats(tier = if (level == Level.BEGINNER) startingTier(age) else 1)
@@ -351,10 +405,30 @@ data class Profile(
     val hat: Hat
         get() {
             val chosen = Hat.entries.firstOrNull { it.name == hatChoice }
-            return if (chosen != null && totalStars >= chosen.starsNeeded) chosen else Hat.forStars(totalStars)
+            if (chosen != null && owns(Rewards.hat(chosen))) return chosen
+            // Nothing picked yet: wear the newest of the first hats Pip earns.
+            return Rewards.autoHats.lastOrNull { owns(Rewards.hat(it)) } ?: Hat.NONE
         }
 
-    val closetOpen: Boolean get() = goldWins >= 1
+    /** Best stars in every game of every level added together (each game counts once, max 3). */
+    fun collectedStars(): Int = Level.entries.sumOf { lv -> Topic.entries.sumOf { t -> topicStars(t, lv) } }
+
+    fun levelStars(level: Level): Int = Topic.entries.sumOf { topicStars(it, level) }
+
+    /** Is this reward's rule met right now? */
+    fun meets(u: Unlock): Boolean = when (u) {
+        Unlock.Free -> true
+        is Unlock.Stars -> collectedStars() >= u.n
+        is Unlock.OpLevel -> fullStars(u.topic, u.level)
+        is Unlock.FullLevel -> Topic.entries.all { fullStars(it, u.level) }
+        is Unlock.OpMaster -> Level.entries.all { fullStars(u.topic, it) }
+        Unlock.Everything -> Level.entries.all { lv -> Topic.entries.all { fullStars(it, lv) } }
+    }
+
+    /** Earned items stay earned, even if the rules change later. */
+    fun owns(r: Reward): Boolean = r.id in ownedItems || meets(r.unlock)
+
+    val closetOpen: Boolean get() = goldWins >= 1 || ownedItems.isNotEmpty() || collectedStars() >= 3
 
     companion object {
         /** Beginner keeps the old key ("add") so saved progress still loads. */
@@ -436,6 +510,8 @@ data class GameResult(
     val unlocked: List<String> = emptyList(),
     /** Set when this game opened the next level of this operation. */
     val levelUnlocked: Level? = null,
+    /** Trophies just won, e.g. "Beginner Addition Champion". */
+    val trophies: List<String> = emptyList(),
 )
 
 /** Funny things Pip says. */

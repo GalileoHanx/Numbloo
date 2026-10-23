@@ -35,7 +35,7 @@ import com.numbloo.mathfun.AppState
 import com.numbloo.mathfun.audio.Sfx
 import com.numbloo.mathfun.model.Curriculum
 import com.numbloo.mathfun.model.GameType
-import com.numbloo.mathfun.model.Hat
+import com.numbloo.mathfun.model.Rewards
 import com.numbloo.mathfun.model.Level
 import com.numbloo.mathfun.model.Profile
 import com.numbloo.mathfun.model.Topic
@@ -158,11 +158,13 @@ fun LevelScreen(
 
 @Composable
 private fun HatProgress(profile: Profile) {
-    val next = Hat.next(profile.totalStars)
+    val got = profile.collectedStars()
+    val total = Rewards.totalStars()
+    val next = Rewards.nextByStars(got)
     val text = if (next == null) {
-        "⭐ ${profile.totalStars} stars — Pip has every hat!"
+        "⭐ $got / $total stars — every star prize won!"
     } else {
-        "⭐ ${profile.totalStars} stars — ${next.starsNeeded - profile.totalStars} more for Pip's ${next.label}!"
+        "⭐ $got / $total stars — ${next.first - got} more for ${next.second.first().label}!"
     }
     FunText(text, 15.sp, NumColors.InkSoft, weight = FontWeight.Bold)
 }

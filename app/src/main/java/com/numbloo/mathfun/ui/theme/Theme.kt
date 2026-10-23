@@ -18,7 +18,7 @@ object NumColors {
     val Bad = Color(0xFFFF6B6B)
     val Lily = Color(0xFF7ED957)
 
-    /** Pip comes in six flavours, one per player. */
+    /** Pip's colours. The first six are free, the rest are won in the closet. */
     val PipPalette = listOf(
         Color(0xFF7ED957), // lime
         Color(0xFF4FC3F7), // sky
@@ -30,6 +30,25 @@ object NumColors {
         Color(0xFFE53958), // ruby (unlockable)
         Color(0xFFF2B705), // gold (unlockable)
         Color(0xFF3D4A9E), // midnight (unlockable)
+        Color(0xFFFF7F6E), // coral
+        Color(0xFFC7A6F2), // lavender
+        Color(0xFF26A69A), // teal
+        Color(0xFF43A047), // forest
+        Color(0xFFFFB38A), // peach
+        Color(0xFF8D6E63), // cocoa
+        Color(0xFFB0BEC5), // silver
+        Color(0xFFB3F0FF), // diamond (Pro superstar)
+        Color(0xFFFF6D00), // blaze (Addition master)
+        Color(0xFF1E88E5), // ocean (Subtraction master)
+        Color(0xFF5E35B1), // galaxy (Multiplication master)
+        Color(0xFFD81B60), // cherry (Division master)
+        Color(0xFFFF6FA8), // rainbow (drawn as a rainbow; this is its base)
+    )
+
+    /** The colours of the rainbow, for the Numbloo Legend prize. */
+    val Rainbow = listOf(
+        Color(0xFFFF5252), Color(0xFFFF9800), Color(0xFFFFEB3B), Color(0xFF66BB6A),
+        Color(0xFF42A5F5), Color(0xFFAB47BC), Color(0xFFFF5252),
     )
 
     fun pip(index: Int): Color = PipPalette[((index % PipPalette.size) + PipPalette.size) % PipPalette.size]

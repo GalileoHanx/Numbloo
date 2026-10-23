@@ -66,8 +66,9 @@ fun ResultsScreen(
             if (result.sticker != null) append(" You got a new sticker: ${result.sticker.name}!")
             if (result.newHat != null) append(" And Pip got a ${result.newHat.label}!")
             if (result.levelUnlocked != null) append(" WOW! ${result.levelUnlocked.title} ${result.topic.title} is now open!")
-            if (result.closetOpened) append(" Three stars! Pip's closet is now open!")
-            else if (result.unlocked.isNotEmpty()) append(" New clothes for Pip!")
+            result.trophies.forEach { append(" You won the $it trophy!") }
+            if (result.closetOpened) append(" Pip's closet is now open!")
+            else if (result.unlocked.isNotEmpty()) append(" New things in Pip's closet!")
         }
         app.say(headline + extra, queue = true)
     }
@@ -119,6 +120,15 @@ fun ResultsScreen(
                     Panel(Modifier.fillMaxWidth(), color = NumColors.Grass.copy(alpha = 0.25f)) {
                         FunText("👕 Pip's Closet is open!", 20.sp)
                         FunText("Three stars! Now you can dress up Pip from the level menu.", 15.sp, NumColors.InkSoft)
+                    }
+                }
+                Gap(12.dp)
+            }
+            result.trophies.forEach { name ->
+                PopIn(800) {
+                    Panel(Modifier.fillMaxWidth(), color = NumColors.Sun.copy(alpha = 0.45f)) {
+                        FunText("🏆 Trophy won!", 20.sp)
+                        FunText(name, 18.sp, NumColors.Ink)
                     }
                 }
                 Gap(12.dp)
